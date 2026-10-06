@@ -1,178 +1,591 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The programmable enterprise cost dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Programmable Enterprise Cost Dashboard</title>
 <style>
-:root{--bg:#f6f5f1;--card:#fff;--ink:#1c1b19;--mut:#6b6860;--line:#e3e0d8;--c1:#2f6fed;--c2:#9aaaf3;--c3:#7257b8;--fixed:#2f6fed;--fxv:#7257b8;--tech:#2f6fed;--org:#7257b8;--font:"Times New Roman",Times,serif;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16150f;--card:#201f19;--ink:#f1efe8;--mut:#a29f94;--line:#35332b;--c1:#6b9bff;--c2:#b3bff8;--c3:#a58aec;--fixed:#6b9bff;--fxv:#a58aec;--tech:#6b9bff;--org:#a58aec}}
-:root[data-theme="dark"]{--bg:#16150f;--card:#201f19;--ink:#f1efe8;--mut:#a29f94;--line:#35332b;--c1:#6b9bff;--c2:#b3bff8;--c3:#a58aec;--fixed:#6b9bff;--fxv:#a58aec;--tech:#6b9bff;--org:#a58aec}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+/* Layout: driver rail on the left; KPI strip, then a 2x2 board of charts. Technology = blue, organisation = violet. */
+:root{
+  --bg:#F3F4F6; --panel:#FFFFFF; --ink:#16181D; --muted:#5E6470; --line:#E2E4E9; --soft:#EEF0F4;
+  --tech:#2F6BED; --tech2:#9DB8F6; --org:#6B4BC2; --org2:#B9A6E6; --ring:#16181D; --base:#8A8F99;
+  --display:"Times New Roman", Times, "Liberation Serif", serif;
+  --body:"Times New Roman", Times, "Liberation Serif", serif;
+  --label:"Times New Roman", Times, "Liberation Serif", serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111317;--panel:#1A1D23;--ink:#ECEEF2;--muted:#9AA1AD;--line:#2C3039;--soft:#23272F;--tech:#5B8DF5;--tech2:#2E4A85;--org:#9B7FE6;--org2:#4B3A7A;--ring:#ECEEF2;--base:#7D8490;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111317;--panel:#1A1D23;--ink:#ECEEF2;--muted:#9AA1AD;--line:#2C3039;--soft:#23272F;--tech:#5B8DF5;--tech2:#2E4A85;--org:#9B7FE6;--org2:#4B3A7A;--ring:#ECEEF2;--base:#7D8490;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--font)}
-.wrap{max-width:1150px;margin:0 auto;padding:14px 16px 14px}
-h1{font-size:24px;margin:0 0 4px;letter-spacing:-.3px}
-.sub{color:var(--mut);margin:0 0 12px}
-.top{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
-@media(max-width:820px){.top{grid-template-columns:1fr}}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.panel h2{font-size:14px;margin:0 0 10px}
-.ctl{margin-bottom:8px}.tight .ctl{margin-bottom:2px}.tight .sub{margin-bottom:6px}.tight .pre{margin-bottom:6px}.tight .top,.tight .row2{gap:10px}.tight .row2{margin-top:10px!important}
-.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--mut)}
-.ctl label b{color:var(--ink)}
-input[type=range]{width:100%;accent-color:var(--c1)}
-.pre{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.pre button{flex:1;padding:6px 8px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font-family:var(--font);font-size:12px;cursor:pointer}
-.pre button:hover{border-color:var(--ink)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.kpi b{display:block;font-size:24px;line-height:1.15}
-.kpi span{color:var(--mut);font-size:12px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-@media(max-width:820px){.row2{grid-template-columns:1fr}}
-svg{width:100%;height:auto;display:block}
-svg text{fill:var(--mut);font-size:10px;font-family:var(--font)}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:8px}
-.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:10px}
-.seg button{background:var(--card);color:var(--ink);border:0;padding:5px 11px;font-family:var(--font);font-size:12px;cursor:pointer}
-.seg button.on{background:var(--ink);color:var(--bg)}
-.note{font-size:12px;color:var(--mut);margin-top:8px;margin-bottom:0}
-.ins{font-size:13px;margin-top:8px}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:13px;line-height:1.4;padding-inline:16px;padding-block:12px}
+.wrap{max-width:1500px;margin:0 auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;height:100%}
+h1{font-family:var(--display);font-size:clamp(19px,2.2vw,24px);margin:0;letter-spacing:-.01em}
+.board{display:grid;grid-template-columns:250px minmax(0,1fr);gap:10px;min-height:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:0;min-height:0}
+h2{font-family:var(--display);font-size:14.5px;font-weight:700;margin:0 0 6px}
+.lab{font-family:var(--label);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+aside{overflow:auto}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}
+.presets button{font:inherit;font-size:12px;padding:6px 2px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);cursor:pointer}
+.presets button[aria-pressed="true"]{border-color:var(--ink);font-weight:700;background:var(--soft)}
+.presets button:focus-visible,.tabs button:focus-visible,input:focus-visible{outline:2px solid var(--tech);outline-offset:2px}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:0 8px;margin-bottom:8px}
+.ctl label{font-size:12px}
+.ctl output{font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+.ctl select{grid-column:1/-1;font:inherit;font-size:12px;padding:3px 6px;margin-top:2px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.ctl input{grid-column:1/-1;width:100%;accent-color:var(--tech);margin:1px 0 0}
+.ctl .hint{grid-column:1/-1;font-size:10.5px;color:var(--muted);line-height:1.3}
+.note{font-size:10.5px;color:var(--muted);margin:4px 0 0}
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;min-width:0;min-height:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kpi .v{font-family:var(--display);font-size:clamp(20px,2vw,26px);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:2px}
+.kpi .d{font-size:11px;color:var(--muted);margin-top:1px;line-height:1.3}
+.split{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:4px;background:var(--soft)}
+.split i{display:block;height:100%}
+.charts{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.25fr) minmax(0,1.1fr);gap:10px;min-height:0}
+.charts .card{display:flex;flex-direction:column}
+.cv{position:relative;flex:1 1 auto;min-height:0}
+.cap{font-size:11.5px;margin:6px 0 0;line-height:1.35}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 10px;margin-bottom:6px}
+.head h2{margin:0}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.tabs button{font:inherit;font-size:11.5px;padding:4px 10px;border:0;background:var(--panel);color:var(--ink);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.legend{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:9.5px;color:var(--muted);margin-top:4px}
+.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.legend .dash::before{height:0;border-top:2px dashed var(--c);background:none;width:14px;vertical-align:3px}
+.legend .diamond::before{background:none;border:2px solid var(--c);width:7px;height:7px;transform:rotate(45deg);border-radius:0}
+.legend .ring::before{border-radius:50%;background:none;border:2px solid var(--c);width:8px;height:8px}
+footer{font-size:9px;line-height:1.3;color:var(--muted)}
+/* below laptop size, fall back to a scrolling stack */
+@media (max-width:1100px), (max-height:560px){
+  html,body{height:auto}.wrap{height:auto}
+  .charts{grid-template-columns:minmax(0,1fr)}.charts .cv{height:300px;flex:none}
+}
+@media (max-width:800px){.board{grid-template-columns:minmax(0,1fr)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
+
 <div class="wrap">
-<h1>The programmable enterprise cost dashboard</h1>
-<p class="sub">From enterprise spend to the cost of a unit of intelligent work. Adjust the drivers to see how fixed and fixed + variable costs behave as intelligence scales.</p>
+<h1>The Programmable Enterprise Cost Dashboard</h1>
+<div class="board">
+  <aside class="card" aria-label="Scenario drivers">
+    <h2>Scenario drivers</h2>
+    <div class="presets" role="group" aria-label="Scenario presets">
+      <button type="button" id="pPilot" data-p="pilot">Pilot</button>
+      <button type="button" id="pScale" data-p="scale">Scale-up</button>
+      <button type="button" id="pEnt" data-p="enterprise">Enterprise</button>
+    </div>
+    <div class="ctl"><span class="lab" style="grid-column:1/-1">Assumptions</span><div class="presets scen" role="group" aria-label="Assumption scenario" style="grid-column:1/-1;margin:2px 0 0">
+      <button type="button" data-s="Low">Low</button><button type="button" data-s="Base">Base</button><button type="button" data-s="High">High</button></div><span class="hint" id="scenHint"></span></div>
+    <div class="ctl"><label for="perProc">Work units per process / month (k)</label><output id="perProco"></output><input type="range" id="perProc" min="1" max="50" step="0.125"><span class="hint" id="unitsHint"></span></div>
+    <div class="ctl"><label for="procs">Processes in scope</label><output id="procso"></output><input type="range" id="procs" min="1" max="40" step="1"><span class="hint" id="procHint"></span></div>
+    <div class="ctl"><label for="cust">Customer interactions / month (k)</label><output id="custo"></output><input type="range" id="cust" min="0" max="400" step="5"></div>
+    <div class="ctl"><label for="auto">Autonomy / risk level</label><output id="autoo"></output><input type="range" id="auto" min="1" max="3" step="1"><span class="hint" id="autoHint"></span></div>
+    <div class="ctl"><label for="growth">Annual volume growth</label><output id="growtho"></output><input type="range" id="growth" min="0" max="0.6" step="0.05"></div>
+    <div class="ctl"><label for="index">Search index size (GB)</label><output id="indexo"></output><input type="range" id="index" min="250" max="5000" step="250"><span class="hint" id="indexHint"></span></div>
+    <div class="ctl"><label for="ctx">Context tokens per agent step (k)</label><output id="ctxo"></output><input type="range" id="ctx" min="2" max="40" step="1"><span class="hint" id="ctxHint"></span></div>
+    <div class="ctl"><label for="priceSet">Token prices</label><select id="priceSet"><option>OpenAI list</option><option>Azure billed (reported)</option></select></div>
+  </aside>
 
-<div class="top">
-<div class="panel">
-<h2>Scenario drivers</h2>
-<div class="pre"><button data-p="pilot">Pilot</button><button data-p="scale">Scale-up</button><button data-p="ent">Enterprise</button></div>
-<div id="ctls"></div>
+  <div class="main">
+    <section class="kpis" aria-label="Headline figures">
+      <div class="card kpi"><div class="lab">3-year total cost</div><div class="v" id="kTot"></div><div class="d" id="kTotD"></div></div>
+      <div class="card kpi"><div class="lab">Year 1 cost</div><div class="v" id="kY1"></div><div class="d" id="kY1D"></div></div>
+      <div class="card kpi"><div class="lab">Committed vs variable</div><div class="v" id="kCV"></div><div class="split" aria-hidden="true"><i id="sC" style="background:var(--tech)"></i><i id="sV" style="background:var(--org)"></i></div><div class="d">One-time + annual fixed vs volume-driven, in today's prices, before contingency</div></div>
+      <div class="card kpi"><div class="lab">Per internal work unit, Yr 3</div><div class="v" id="kU"></div><div class="d" id="kUD"></div></div>
+    </section>
+
+    <div class="charts">
+      <section class="card"><h2>Cost structure by year</h2>
+        <div class="cv"><canvas id="cYear" role="img" aria-label="Stacked cost by year"></canvas></div>
+        <div class="legend"><span style="--c:var(--tech)">Committed</span><span style="--c:var(--org)">Variable</span><span style="--c:var(--org2)">Contingency</span></div>
+      </section>
+      <section class="card"><h2>Unit economics: cost per unit vs volume</h2>
+        <div class="cv"><canvas id="cUnit" role="img" aria-label="Cost per internal work unit across volumes"></canvas></div>
+        <div class="legend"><span style="--c:var(--tech)">Internal work unit</span><span style="--c:var(--org)">Customer interaction</span><span class="diamond" style="--c:var(--muted)">Today without agentic AI (right axis)</span><span class="ring" style="--c:var(--ring)">Current scenario</span></div>
+      </section>
+      <section class="card"><div class="head"><h2>3-year cost by cost driver</h2>
+        <div class="tabs" role="group" aria-label="Filter cost drivers"><button type="button" id="tAll" data-f="all">All</button><button type="button" id="tTech" data-f="tech">Technology</button><button type="button" id="tOrg" data-f="org">Organisation</button><button type="button" id="tSens" data-f="sens">Sensitivity</button></div></div>
+        <div class="cv" id="drvBox"><canvas id="cDrv" role="img" aria-label="Cost by taxonomy category"></canvas></div>
+        <div class="cv" id="torBox" hidden><canvas id="cTor" role="img" aria-label="Tornado: change in 3-year total by assumption"></canvas></div>
+        <div class="legend" id="drvLeg"><span style="--c:var(--tech)">Technology</span><span style="--c:var(--org)">Organisation</span><span>Today's prices, before contingency</span></div>
+        <div class="legend" id="torLeg" hidden><span style="--c:var(--tech)">Low value</span><span style="--c:var(--org)">High value</span><span>Change in 3-year total vs base</span></div>
+      </section>
+    </div>
+  </div>
 </div>
-<div>
-<div class="kpis" id="kpis"></div><div class="panel"><h2>Cost structure by year</h2><div id="ch1"></div>
-<div class="legend"><span><i class="dot" style="background:var(--fixed)"></i>Fixed</span><span><i class="dot" style="background:var(--fxv)"></i>Fixed + variable</span></div></div>
-</div>
+<footer>Current-state baseline: internal = employee minutes at average productive employee cost; customer = agent handling time at the blended in-house / outsourced agent rate. Unit cost includes a volume share of shared platform, run-team and governance cost and contingency. Programme cost only: benefits are not counted. Tokens per unit = agent steps x tokens per step (12k context, 500 output x3 reasoning, 50% cached at 90% off). Model tiers priced at GPT-5.6 Luna / Terra / Sol. Delivery effort = person-days x blended onshore / offshore day rates.</footer>
 </div>
 
-<div class="row2" style="margin-top:14px">
-<div class="panel"><h2>Unit economics: cost per unit of intelligent work vs volume</h2><div id="ch3"></div>
-<div class="ins" id="ins"></div></div>
-<div class="panel"><h2>3-year cost by cost driver</h2>
-<div class="seg" id="seg"></div><div id="ch2"></div></div>
-</div>
-<p class="note">All rates are illustrative assumptions for scenario exploration, not benchmarks. Replace them with your own cloud, model, vendor, infrastructure and workforce costs before budgeting. The dashboard uses the chapter taxonomy: Fixed and Fixed + variable. “Unit of intelligent work” is a generic economic unit that can represent a completed AI-enabled task, workflow or decision.</p>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-var $=function(i){return document.getElementById(i)};
-var P={T:50,U:8,A:20,E:2000,R:2,g:50},dimF="all";
-var DR=[["T","Monthly transactions (k)",10,2000,10,function(v){return v+"k"}],["U","Use cases",1,30,1],["A","Agents",1,100,1],["E","Employees affected",100,20000,100],["R","Autonomy / risk level",1,3,1,function(v){return["","Low","Medium","High"][v]}],["g","Annual volume growth",0,200,10,function(v){return v+"%"}]];
-var PRE={pilot:{T:10,U:2,A:4,E:300,R:1,g:50},scale:{T:50,U:8,A:20,E:2000,R:2,g:50},ent:{T:500,U:20,A:60,E:10000,R:3,g:30}};
-function fmt(k){return k>=1000?"$"+(k/1000).toFixed(k>=10000?1:2)+"M":"$"+Math.round(k)+"K"}
-function model(p){
- var an=p.T*12,R=[1,1,1.5,2.2][p.R],U=p.U,A=p.A,E=p.E;
- var buildUp=45*U+20*A;
- var C=[
- ["Memory","t",0,40,.10*an],["Vector database","t",0,30,.08*an],["Licensing, SaaS, API/MCP","t",0,120,.15*an],
- ["Build and implementation","t",buildUp,.15*buildUp,0],["Integration","t",35*U,0,0],["Infrastructure","t",0,100,.35*an],
- ["Maintenance and monitoring","t",0,.12*buildUp,.05*an],["Inference (compute)","t",0,20,.9*an],
- ["Multi-agent orchestration","t",0,15,.004*A*an],["Energy and cooling","t",0,10,.04*an],
- ["Transition and restructuring","o",.15*E,0,0],["Capability building","o",.05*E,.03*E+2*A,0],
- ["Process redesign","o",40*U,0,0],["Change management","o",30,0,.02*E],["Security, compliance, governance","o",0,50*R,.06*an*R]
- ].map(function(c){return{n:c[0],d:c[1],up:c[2],base:c[3],v:c[4]}});
- var tr=0;C.forEach(function(c){if(c.d==="t")tr+=c.base+c.v});
- C[10].up+=.25*tr;
- return C;
+const BASE = {
+  procs: [3, 3, 2], unitsPerProc: [15000, 10000, 5000], tokenMult: [0.5, 1, 2],
+  intRate: [0.08, 0.15, 0.30], luna: [0.8, 0.55, 0.2], terra: [0.15, 0.35, 0.5], sol: [0.05, 0.1, 0.3],
+  manualMin: [4, 10, 30], autoShare: [0.75, 0.6, 0.4], trainHrs: [16, 24, 40], intMinutes: [5, 10, 20],
+  risk: 2, growth: 0.3, computeGrowth: 0.05, effImprove: 0.02,
+  inTok: 6000, outTok: 1000, indexedGB: 2000,
+  rates: { luna: [0.2, 1.2], terra: [2, 12], sol: [5, 30] },
+  build: 150000, integration: 50000, buildPerProc: [40000, 80000, 150000], intPerProc: [25000, 50000, 100000], transitionFixed: 150000, processRedesign: 100000, securityFixed: 150000,
+  changeFixed: 100000, searchBaseline: 0, azureBaseline: 12000, orchBaseline: 4320, gwUnits: 1, gwPrice: 700,
+  leadership: 50000,
+  vcpuPerStep: 1.5,
+  // agent steps from complexity drivers
+  drv: { sys: [1, 2, 4], dec: [1, 2, 6], doc: [1, 2, 3], val: [1, 1, 2], turns: [6, 10, 4, 2], lookups: [2, 3, 2, 2] },
+  perStep: { plan: 1, sys: 2, dec: 1, doc: 1, val: 1, turn: 1 },
+  // delivery effort x blended rate card (US$ per person-day: onshore, offshore)
+  rateCard: { lead: [1800, 640], arch: [2000, 840], ai: [1600, 520], int: [1400, 400], ba: [1200, 360], qa: [1000, 280], chg: [1300, 400], risk: [1800, 600] },
+  onshoreShare: 0.3, effortMult: 1, daysPerMonth: 21,
+  buildDays: { lead: [3, 5, 10], arch: [2, 4, 8], ai: [15, 30, 60], ba: [8, 15, 30], qa: [6, 12, 24] },
+  redesignDays: { ba: [10, 20, 40], lead: [2, 4, 8] },
+  daysPerConnector: 20, connectorReuse: 0.3, qaShareInt: 0.25,
+  journeyDays: { lead: [3, 4, 2, 2], ai: [25, 40, 20, 15], ba: [12, 18, 10, 8], qa: [10, 16, 8, 6] },
+  sharedDays: { foundation: { lead: 40, arch: 40, ai: 60, int: 40, qa: 20 }, intPlatform: { lead: 10, arch: 10, int: 50, qa: 10 }, gov: { lead: 10, arch: 15, risk: 60 } },
+  programme: { change: [['chg', 1, 9], ['ba', 0.5, 6]], transition: [['chg', 0.5, 12]] },
+  scenario: 'Base',
+  autonomyFx: { rev: [1.3, 1, 0.7], gov: [0.75, 1, 1.5], step: [0.8, 1, 1.3], abs: [0.5, 1, 1] },
+  ctxPerStep: 12000, outPerStep: 500, reasoningMult: 3, cachedShare: 0.5, cacheDisc: 0.9, priceSet: 'OpenAI list',
+  priceSets: { 'OpenAI list': { luna: [0.2, 1.2], terra: [2, 12], sol: [5, 30] }, 'Azure billed (reported)': { luna: [1.1, 6.6], terra: [2.75, 16.5], sol: [5.5, 33] } }, gibPerVcpu: 2, vcpuSecPrice: 0.000024, gibSecPrice: 0.000003, reqPerCall: 20, reqPrice: 0.40,
+  alwaysOnVcpu: 8, dedVcpuHr: 0.057077, dedGibHr: 0.004978, envFeeHr: 0.10,
+  searchTier: 'S2', tiers: { S1: [160, 245.28, 15], S2: [512, 981.12, 50], S3: [1024, 1962.24, 100], L1: [2048, 2802.47, 15] },
+  retrievalPerUnit: 2, minReplicas: 2, peakFactor: 3, queryHours: 3000,
+  drMode: 'Warm standby', drModes: { 'Cold': [0.05, 0], 'Warm standby': [0.25, 0], 'Active-active': [1, 0.10] }, escAbsorb: 0.5, maintRate: 0.0001, maintPct: 0.12, orchRate: 0.00012, orchWeight: 0.25,
+  securityRate: 0.00004, transitionPerEmp: 500, trainPerHr: 100, licencePerEmp: 300, changePerEmp: 10,
+  intCost: 35, scopeFixedShare: 0.5, scopeRefProcs: 8, intReduction: 0.2, ramp: 0.75, contingency: 0.08,
+  gwCallsPerUnit: 5, gwIncluded: 50000000, gwOverage: 2.5, entCallsPerUnit: 3, entCostPerCall: 0.001,
+  searchesPerUnit: 0.2, searchPrice: 14, pagesPerUnit: 1, pagePrice: 10,
+  workDays: 250, utilisation: 0.9, hoursPerDay: 8, release: 0.2, firstRetrenchYear: 2, empCost: 90000, sevMonths: 6, outplacement: 3000,
+  refresh: 0.25, backfill: 1, procsPerChampion: 4, championCost: 80000, championAlloc: 0.5,
+  cacheInstances: 2, cachePrice: 50.37, eventsPerUnit: 10, kbPerEvent: 2, ruPerEvent: 10, ruPrice: 0.25,
+  storagePrice: 0.25, embTokensPerUnit: 500, embPrice: 0.02,
+  reviewShare: 0.5, basePct: 0.75, release3: 0.4,
+  poFte: 0.5, poCost: 150000, procsPerEng: 8, engCost: 140000, procsPerAnalyst: 8, analystCost: 110000, riskFte: 0.25, riskCost: 160000, opsY1: 0.4,
+  nonProd: 0.25, tokensPerGB: 250000000, reindex: 0.20, telemetryKB: 20, logPrice: 2.30, evalAnnual: 30000,
+  defenderPer1K: 0.002, purviewPer10K: 0.50, reqPerUnit: 2,
+  cfJourneys: [2, 1, 1, 1], cfMonthly: [40000, 20000, 15000, 10000], cfContain: [0.70, 0.50, 0.65, 0.60],
+  cfIn: [4000, 5000, 3000, 6000], cfOut: [600, 800, 400, 1000], cfLuna: [0.5, 0.3, 0.6, 0.4], cfTerra: [0.4, 0.5, 0.35, 0.45], cfSol: [0.1, 0.2, 0.05, 0.15],
+  cfVoiceMin: [0, 6, 0, 0], cfMsgs: [0, 0, 8, 0], cfAHT: [8, 7, 9, 12], cfEscAHT: [6, 6, 7, 8], cfBuild: [60000, 120000, 60000, 50000], cfInt: [40000, 60000, 40000, 30000],
+  stt: 1.0, tts: 15, charsPerMin: 900, tel: 0.022, msgFee: 0.0034, csPrice: 0.38, csRecords: 4, outShare: 0.6, inhouseRate: 40, bpoRate: 18, occupancy: 0.8, escReduction: 0.10,
+  wageEsc: 0.04, azureEsc: 0, tokenChange: -0.15, discount: 0.10,
+  intMult: 1, // dashboard-only lever: scales all tier intervention rates
+  intMinMult: 1, // dashboard-only lever: scales review minutes per intervention
+};
+
+const TECH = new Set(['Agent memory', 'Build and implementation', 'Integration', 'Azure infrastructure / runtime', 'AI Search / retrieval',
+  'Model inference', 'Maintenance and monitoring', 'Workflow orchestration', 'API gateway (API Management)',
+  'Enterprise system APIs', 'Third-party AI APIs']);
+
+// Low / Base / High values (lower-cost, higher-cost) for the sensitivity analysis
+const SENS = [['growth', 0.2, 0.4], ['ramp', 0.6, 0.9], ['ctxPerStep', 8000, 20000], ['reasoningMult', 1.5, 5], ['cachedShare', 0.7, 0.2],
+  ['priceSet', 'OpenAI list', 'Azure billed (reported)'], ['onshoreShare', 0.2, 0.5], ['effortMult', 0.85, 1.4], ['indexedGB', 1000, 5000],
+  ['reviewShare', 0.7, 0.2], ['empCost', 80000, 110000], ['contingency', 0.05, 0.15]];
+const SENS_LABELS = ['Volume growth', 'Year 1 ramp-up', 'Context tokens per step', 'Reasoning multiplier', 'Prompt-cache share',
+  'Token price set', 'Onshore delivery share', 'Delivery effort vs plan', 'Search index size', 'Review capacity (freed staff)', 'Employee cost', 'Contingency'];
+function tornado(p) {
+  const base = runModel({ ...p, scenario: 'Base' }).total;
+  return SENS.map(([k, lo, hi], i) => ({ label: SENS_LABELS[i], key: k, lo, hi, low: runModel({ ...p, scenario: 'Base', [k]: lo }).total - base, high: runModel({ ...p, scenario: 'Base', [k]: hi }).total - base }))
+    .sort((a, b) => Math.abs(b.high - b.low) - Math.abs(a.high - a.low));
 }
-function yearly(p){var C=model(p),g=p.g/100,out=[];
- for(var y=0;y<3;y++){var gf=Math.pow(1+g,y),o={up:0,base:0,v:0};
-  C.forEach(function(c){if(y===0)o.up+=c.up;o.base+=c.base;o.v+=c.v*gf});
-  o.tot=o.up+o.base+o.v;out.push(o)}
- return out}
-function txns(p){var g=p.g/100;return p.T*12*(1+(1+g)+Math.pow(1+g,2))}
-function tco(p){return yearly(p).reduce(function(s,y){return s+y.tot},0)}
-function ctls(){
- $("ctls").innerHTML=DR.map(function(d){var f=d[5]||function(v){return v.toLocaleString()};
-  return '<div class="ctl"><label>'+d[1]+'<b id="o_'+d[0]+'">'+f(P[d[0]])+'</b></label><input type="range" id="r_'+d[0]+'" min="'+d[2]+'" max="'+d[3]+'" step="'+d[4]+'" value="'+P[d[0]]+'"></div>'}).join("");
- DR.forEach(function(d){$("r_"+d[0]).oninput=function(){P[d[0]]=+this.value;draw()}});
+function runModel(p) {
+  p = { ...p, prodHrs: p.workDays * p.utilisation * p.hoursPerDay };
+  // Low / Base / High scenario
+  if (p.scenario === 'Low' || p.scenario === 'High') for (const [k, lo, hi] of SENS) p[k] = p.scenario === 'Low' ? lo : hi;
+  // agent steps from complexity drivers
+  { const D = p.drv, W = p.perStep;
+    p.stepsTier = [0, 1, 2].map(t => W.plan + D.sys[t] * W.sys + D.dec[t] * W.dec + D.doc[t] * W.doc + D.val[t] * W.val);
+    p.stepsCh = [0, 1, 2, 3].map(c => D.turns[c] * W.turn + D.lookups[c] * W.sys); }
+  // delivery effort x blended day rate
+  { const bl = {}; for (const [k, [on, off]] of Object.entries(p.rateCard)) bl[k] = p.onshoreShare * on + (1 - p.onshoreShare) * off;
+    const E = p.effortMult, n = p.procs.length;
+    const tierCost = (tbl, m) => Array.from({ length: m }, (_, t) => Object.entries(tbl).reduce((s, [r, d]) => s + d[t] * bl[r], 0) * E);
+    const shared = o => Object.entries(o).reduce((s, [r, d]) => s + d * bl[r], 0) * E;
+    const conn = sysArr => sysArr.map(x => x * p.daysPerConnector * (1 - p.connectorReuse) * (bl.int + p.qaShareInt * bl.qa) * E);
+    p.buildPerProc = tierCost(p.buildDays, 3); p.intPerProc = conn(p.drv.sys);
+    p.cfBuild = tierCost(p.journeyDays, 4); p.cfInt = conn(p.drv.lookups);
+    p.build = shared(p.sharedDays.foundation); p.integration = shared(p.sharedDays.intPlatform); p.securityFixed = shared(p.sharedDays.gov);
+    const red = tierCost(p.redesignDays, 3); p.processRedesign = p.procs.reduce((s, x, i) => s + x * red[i], 0);
+    const prog = list => list.reduce((s, [r, f, mo]) => s + f * mo * p.daysPerMonth * bl[r], 0) * E;
+    p.changeFixed = prog(p.programme.change); p.transitionFixed = prog(p.programme.transition); }
+  // autonomy level (risk 1-3) scales review, governance, agent steps and review absorption
+  { const a = Math.min(3, Math.max(1, Math.round(p.risk))) - 1, F = p.autonomyFx;
+    p.stepsTier = p.stepsTier.map(x => x * F.step[a]); p.stepsCh = p.stepsCh.map(x => x * F.step[a]);
+    p.intMult = p.intMult * F.rev[a]; p.reviewShare = p.reviewShare * F.abs[a];
+    p.securityFixed = p.securityFixed * F.gov[a]; p.evalAnnual = p.evalAnnual * F.gov[a]; }
+  // tokens follow agent steps
+  p.tokenMult = p.stepsTier.map(x => x / p.stepsTier[1]);
+  p.inTok = p.stepsTier[1] * p.ctxPerStep; p.outTok = p.stepsTier[1] * p.outPerStep * p.reasoningMult;
+  p.cfIn = p.stepsCh.map(x => x * p.ctxPerStep); p.cfOut = p.stepsCh.map(x => x * p.outPerStep * p.reasoningMult);
+  p.rates = p.priceSets[p.priceSet] || p.priceSets['OpenAI list'];
+  const cacheF = 1 - p.cachedShare * p.cacheDisc;
+  p.empPerProc = p.unitsPerProc.map((u, i) => u * p.manualMin[i] * 12 / (p.prodHrs * 60));
+  p.minSaved = p.manualMin.map((m, i) => m * p.autoShare[i]);
+  const sp = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
+  const sp3 = (a, b, c) => a.reduce((s, x, i) => s + x * b[i] * c[i], 0);
+  const sp4 = (a, b, c, d) => a.reduce((s, x, i) => s + x * b[i] * c[i] * d[i], 0);
+  const procs = p.procs.reduce((s, x) => s + x, 0);
+  const monthly = sp(p.procs, p.unitsPerProc);
+  const emp = Math.ceil(sp(p.procs, p.empPerProc) - 1e-9);
+  const intRates = p.intRate.map(r => Math.min(1, r * p.intMult));
+  const wInt = monthly ? sp3(p.procs, p.unitsPerProc, intRates) / monthly : 0;
+  const tier = p.tiers[p.searchTier] || p.tiers.S2;
+  const partitions = Math.ceil(p.indexedGB / tier[0]);
+  const vcpuPerUnit = monthly ? sp3(p.procs, p.unitsPerProc, p.stepsTier) / monthly * p.vcpuPerStep : 0;
+  const vcpuPerInt0 = p.cfMonthly.reduce((s, x) => s + x, 0);
+  const vcpuPerInt = vcpuPerInt0 ? sp(p.cfMonthly, p.stepsCh) / vcpuPerInt0 * p.vcpuPerStep : 0;
+  const intMin = p.intMinutes.map(x => x * p.intMinMult);
+  const wIntMinPerUnit = monthly ? sp4(p.procs, p.unitsPerProc, intRates, intMin) / monthly : 0; // review minutes per work unit
+  const costPerInt = wInt ? (p.empCost / p.prodHrs) * (wIntMinPerUnit / wInt) / 60 : 0;
+  // model mix (tier-weighted inference cost per work unit)
+  const R = p.rates;
+  let infPerUnit = 0;
+  for (let t = 0; t < 3; t++) {
+    const share = monthly ? p.procs[t] * p.unitsPerProc[t] / monthly : 0;
+    const inR = p.luna[t] * R.luna[0] + p.terra[t] * R.terra[0] + p.sol[t] * R.sol[0];
+    const outR = p.luna[t] * R.luna[1] + p.terra[t] * R.terra[1] + p.sol[t] * R.sol[1];
+    infPerUnit += share * p.tokenMult[t] * (p.inTok * cacheF * inR + p.outTok * outR) / 1e6;
+  }
+  const scope = p.scopeFixedShare + (1 - p.scopeFixedShare) * procs / p.scopeRefProcs;
+  const orchCx = (1 - p.orchWeight) + p.orchWeight * scope;
+  const wMin = monthly ? sp3(p.procs, p.unitsPerProc, p.minSaved) / monthly : 0;
+  const y1Hrs = sp3(p.procs, p.empPerProc, p.trainHrs);
+  const hourly = p.empCost / p.prodHrs;
+  const champions = Math.ceil(procs / p.procsPerChampion);
+
+  const Y = [1, 2, 3].map(y => {
+    const units = monthly * Math.pow(1 + p.growth, y - 1) * (y === 1 ? p.ramp : 1) * 12;
+    return {
+      y, units,
+      interventions: units * wInt * Math.pow(1 - p.intReduction, y - 1),
+      effUnits: units * Math.pow((1 + p.computeGrowth) * (1 - p.effImprove), y - 1),
+      fteFreed: Math.min(units, monthly * 12) * wMin / 60 / p.prodHrs,
+      hiringAvoided: Math.max(0, units - monthly * 12) * wMin / 60 / p.prodHrs,
+    };
+  });
+  let gbEnd = 0;
+  Y.forEach(d => { const w = d.units * p.eventsPerUnit * p.kbPerEvent / 1e6; d.gbAvg = gbEnd + w / 2; gbEnd += w; });
+  let cum = 0;
+  Y.forEach(d => {
+    const target = d.y < p.firstRetrenchYear ? 0 : Math.min(emp, d.fteFreed * (d.y === 3 ? p.release3 : p.release));
+    const next = Math.max(cum, target);
+    d.exits = next - cum; cum = next; d.cumExits = cum; d.retained = emp - cum;
+    const wMinPerInt = wInt ? wIntMinPerUnit / wInt : 0;
+    d.reviewHrs = d.interventions * wMinPerInt / 60;
+    d.reviewCap = Math.max(0, Math.min(d.fteFreed - cum, d.retained)) * p.prodHrs * p.reviewShare;
+    d.reviewAbsorbed = Math.min(d.reviewHrs, d.reviewCap);
+    d.reviewCosted = d.reviewHrs - d.reviewAbsorbed;
+    d.trainHrs = d.y === 1 ? y1Hrs : (emp ? p.refresh * y1Hrs / emp * d.retained : 0);
+  });
+
+  // ---- customer-facing ----
+  const cfMon = p.cfMonthly.reduce((s, x) => s + x, 0);
+  const R2 = p.rates;
+  const cfInfPer = cfMon ? p.cfMonthly.reduce((s, mo, c) => s + mo * (p.cfIn[c] * cacheF * (p.cfLuna[c] * R2.luna[0] + p.cfTerra[c] * R2.terra[0] + p.cfSol[c] * R2.sol[0])
+      + p.cfOut[c] * (p.cfLuna[c] * R2.luna[1] + p.cfTerra[c] * R2.terra[1] + p.cfSol[c] * R2.sol[1])) / 1e6, 0) / cfMon : 0;
+  const todayHours = sp(p.cfMonthly, p.cfAHT) / 60 * 12 / p.occupancy;
+  const agents = todayHours * (1 - p.outShare) / p.prodHrs;
+  let ccum = 0;
+  Y.forEach(d => {
+    d.cfFactor = 12 * Math.pow(1 + p.growth, d.y - 1) * (d.y === 1 ? p.ramp : 1);
+    d.interactions = cfMon * d.cfFactor;
+    d.allUnits = d.units + d.interactions;
+    const escF = Math.pow(1 - p.escReduction, d.y - 1);
+    d.escHours = p.cfMonthly.reduce((s, mo, c) => s + mo * (1 - p.cfContain[c]) * p.cfEscAHT[c], 0) / 60 * d.cfFactor * escF / p.occupancy;
+    const capped = Math.min(d.cfFactor, 12);
+    const freed = Math.max(0, capped / 12 * todayHours - capped / d.cfFactor * d.escHours) * (1 - p.outShare) / p.prodHrs;
+    const target = d.y < p.firstRetrenchYear ? 0 : Math.min(agents, freed * (d.y === 3 ? p.release3 : p.release));
+    const next = Math.max(ccum, target); d.ccExits = next - ccum; ccum = next; d.ccCum = ccum;
+    d.queries = d.allUnits * p.retrievalPerUnit;
+    d.peakQps = d.queries / (p.queryHours * 3600) * p.peakFactor;
+    d.replicas = Math.min(12, Math.max(p.minReplicas, Math.ceil(d.peakQps / tier[2] - 1e-12)));
+    d.searchUnits = partitions * d.replicas;
+    d.vcpuSec = d.units * vcpuPerUnit + d.interactions * vcpuPerInt;
+    d.replicasNeeded = Math.ceil(d.peakQps / tier[2] - 1e-12); d.headroom = d.replicas * tier[2] / d.peakQps;
+    d.requests = d.allUnits * p.reqPerCall;
+  });
+  const scaledBuild = p.build + sp(p.procs, p.buildPerProc) + sp(p.cfJourneys, p.cfBuild);
+  const avgTokPerUnit = (p.inTok + p.outTok) * (monthly ? sp3(p.procs, p.unitsPerProc, p.tokenMult) / monthly : 0);
+  const embInit = p.indexedGB * p.tokensPerGB * p.embPrice / 1e6;
+  // [name, oneTime, annualFixed, variable(y)]
+  const L = [
+    ['Build and implementation', scaledBuild, 0, () => 0],
+    ['Integration', p.integration + sp(p.procs, p.intPerProc) + sp(p.cfJourneys, p.cfInt), 0, () => 0],
+    ['Azure infrastructure / runtime', 0, p.azureBaseline + p.alwaysOnVcpu * (p.dedVcpuHr + p.gibPerVcpu * p.dedGibHr) * 8760 + p.envFeeHr * 8760,
+      d => d.vcpuSec * (p.vcpuSecPrice + p.gibPerVcpu * p.gibSecPrice) + d.requests / 1e6 * p.reqPrice],
+    ['AI Search / retrieval', 0, p.searchBaseline, d => d.searchUnits * tier[1] * 12],
+    ['Model inference', 0, 0, d => infPerUnit * d.effUnits],
+    ['Agent memory', 0, p.cacheInstances * p.cachePrice * 12,
+      d => d.units * p.eventsPerUnit * p.ruPerEvent * p.ruPrice / 1e6 + d.gbAvg * p.storagePrice * 12 + d.units * p.embTokensPerUnit * p.embPrice / 1e6],
+    ['Maintenance and monitoring', 0, p.maintPct * scaledBuild, d => p.maintRate * d.units],
+    ['Workflow orchestration', 0, p.orchBaseline * scope, d => p.orchRate * d.units * orchCx],
+    ['Transition and restructuring', p.transitionFixed, 0, d => d.y === 1 ? p.transitionPerEmp * emp : 0],
+    ['Capability: reskilling', 0, 0, d => p.trainPerHr * d.trainHrs],
+    ['Capability: backfill / productivity loss', 0, 0, d => d.trainHrs * hourly * p.backfill],
+    ['Capability: AI champions', 0, champions * p.championCost * p.championAlloc, () => 0],
+    ['AI operations team', 0, 0, d => (d.y === 1 ? p.opsY1 : 1) * (p.poFte * p.poCost + Math.ceil(procs / p.procsPerEng) * p.engCost
+      + Math.ceil(procs / p.procsPerAnalyst) * p.analystCost + p.riskFte * p.riskCost)],
+    ['Capability: leadership AI programme', p.leadership, 0, () => 0],
+    ['Capability: learning platform licences', 0, 0, d => p.licencePerEmp * d.retained],
+    ['Severance', 0, 0, d => d.exits * (p.empCost * p.basePct * p.sevMonths / 12 + p.outplacement)],
+    ['Process redesign', p.processRedesign, 0, () => 0],
+    ['Change management', p.changeFixed, 0, d => p.changePerEmp * emp],
+    ['Security, compliance & governance', p.securityFixed, 0, d => p.securityRate * d.units * p.risk],
+    ['Human intervention', 0, 0, d => d.reviewCosted * hourly],
+    ['API gateway (API Management)', 0, p.gwUnits * p.gwPrice * 12,
+      d => Math.max(0, d.units / 12 * p.gwCallsPerUnit - p.gwUnits * p.gwIncluded) * 12 * p.gwOverage / 1e6],
+    ['Enterprise system APIs', 0, 0, d => p.entCostPerCall * d.units * p.entCallsPerUnit],
+    ['Third-party AI APIs', 0, 0, d => p.searchPrice / 1000 * d.units * p.searchesPerUnit + p.pagePrice / 1000 * d.units * p.pagesPerUnit],
+  ];
+  const lines0 = L.map(([name, one, fix, vf]) => {
+    const variable = Y.map(vf);
+    const years = Y.map((d, i) => (i === 0 ? one : 0) + fix + variable[i]);
+    return { name, one, fix, variable, years, total: years.reduce((s, x) => s + x, 0), tech: TECH.has(name) };
+  });
+  const yr = (n, i) => lines0.find(l => l.name === n).years[i];
+  const dr = p.drModes[p.drMode] || p.drModes['Warm standby'];
+  const cidx = i => Math.pow((1 + p.computeGrowth) * (1 - p.effImprove), i);
+  const cfInfYr = i => cfInfPer * Y[i].interactions * cidx(i);
+  const extra = [
+    ['Non-production environments', 0, 0, (d, i) => p.nonProd * (yr('Azure infrastructure / runtime', i) + yr('AI Search / retrieval', i) + yr('Model inference', i))],
+    ['Disaster recovery', 0, 0, (d, i) => dr[0] * (yr('Azure infrastructure / runtime', i) + yr('AI Search / retrieval', i) + yr('Agent memory', i) + yr('API gateway (API Management)', i) + yr('Workflow orchestration', i))
+      + dr[1] * (yr('Model inference', i) + cfInfYr(i))],
+    ['Knowledge ingestion and indexing', embInit, 0, (d, i) => i === 0 ? 0 : embInit * p.reindex],
+    ['Observability and evaluation', 0, p.evalAnnual, d => d.units * p.telemetryKB / 1e6 * p.logPrice],
+    ['AI security tooling', 0, 0, d => d.units * avgTokPerUnit / 1000 * p.defenderPer1K + d.units * p.reqPerUnit / 10000 * p.purviewPer10K],
+  ].map(([name, one, fix, vf]) => {
+    const variable = Y.map((d, i) => vf(d, i));
+    const years = Y.map((d, i) => (i === 0 ? one : 0) + fix + variable[i]);
+    return { name, one, fix, variable, years, total: years.reduce((s, x) => s + x, 0), tech: true };
+  });
+  const cust = [
+    ['Customer-facing model inference', 0, 0, (d, i) => cfInfPer * d.interactions * cidx(i), true],
+    ['Voice and messaging channels', 0, 0, d => (p.cfMonthly.reduce((s, mo, c) => s + mo * p.cfVoiceMin[c], 0) * (p.stt / 60 + p.tts * p.charsPerMin / 1e6 + p.tel)
+        + p.cfMonthly.reduce((s, mo, c) => s + mo * p.cfMsgs[c], 0) * p.msgFee) * d.cfFactor, true],
+    ['Customer content safety', 0, 0, d => d.interactions * p.csRecords / 1000 * p.csPrice, false],
+    ['Contact-centre escalations', 0, 0, d => Math.max(0, d.escHours * (1 - p.outShare) - (agents - d.ccCum) * p.prodHrs * p.escAbsorb) * p.inhouseRate
+        + Math.max(0, d.escHours * p.outShare - todayHours * p.outShare * p.escAbsorb) * p.bpoRate, false],
+    ['Contact-centre severance (in-house agents)', 0, 0, d => d.ccExits * (p.inhouseRate * p.prodHrs * p.basePct * p.sevMonths / 12 + p.outplacement), false],
+  ].map(([name, one, fix, vf, tech]) => {
+    const variable = Y.map((d, i) => vf(d, i));
+    const years = Y.map((d, i) => (i === 0 ? one : 0) + fix + variable[i]);
+    return { name, one, fix, variable, years, total: years.reduce((s, x) => s + x, 0), tech };
+  });
+  const lines = [...lines0, ...extra, ...cust];
+  const sum = f => lines.reduce((s, l) => s + f(l), 0);
+  const LAB = new Set(['Contact-centre escalations', 'Contact-centre severance (in-house agents)', 'AI operations team', 'Capability: AI champions', 'Human intervention', 'Capability: backfill / productivity loss', 'Severance', 'Capability: reskilling', 'Maintenance and monitoring']);
+  const AZ = new Set(['Azure infrastructure / runtime', 'AI Search / retrieval', 'Agent memory', 'Workflow orchestration', 'API gateway (API Management)', 'Enterprise system APIs', 'Third-party AI APIs', 'Non-production environments', 'Disaster recovery', 'Knowledge ingestion and indexing', 'Observability and evaluation', 'AI security tooling', 'Voice and messaging channels', 'Customer content safety']);
+  const facOf = (n, i) => i === 0 ? 0 : LAB.has(n) ? Math.pow(1 + p.wageEsc, i) - 1 : AZ.has(n) ? Math.pow(1 + p.azureEsc, i) - 1
+      : (n === 'Model inference' || n === 'Customer-facing model inference') ? Math.pow(1 + p.tokenChange, i) - 1 : 0;
+  lines.forEach(l => { l.fac = [0, 1, 2].map(i => facOf(l.name, i)); });
+  const yearTotals = [0, 1, 2].map(i => sum(l => l.years[i]));
+  const esc = [0, 1, 2].map(i => i === 0 ? 0 : sum(l => l.years[i] * (LAB.has(l.name) ? Math.pow(1 + p.wageEsc, i) - 1
+      : AZ.has(l.name) ? Math.pow(1 + p.azureEsc, i) - 1 : (l.name === 'Model inference' || l.name === 'Customer-facing model inference') ? Math.pow(1 + p.tokenChange, i) - 1 : 0)));
+  const byYear = [0, 1, 2].map(i => ({
+    oneTime: i === 0 ? sum(l => l.one) : 0, fixed: sum(l => l.fix), variable: sum(l => l.variable[i]),
+    escalation: esc[i], contingency: (yearTotals[i] + esc[i]) * p.contingency,
+  }));
+  const pre = yearTotals.reduce((s, x) => s + x, 0);
+  const escTotal = esc.reduce((s, x) => s + x, 0);
+  const yearIncl = yearTotals.map((x, i) => (x + esc[i]) * (1 + p.contingency));
+  const total = yearIncl.reduce((s, x) => s + x, 0);
+  const totalUnits = Y.reduce((s, d) => s + d.allUnits, 0);
+  const SEG = { Internal: ['Enterprise system APIs', 'Third-party AI APIs', 'Model inference', 'Transition and restructuring', 'Severance', 'Capability: reskilling',
+      'Capability: backfill / productivity loss', 'Capability: AI champions', 'Capability: learning platform licences', 'Process redesign', 'Change management', 'Human intervention'],
+    Customer: ['Voice and messaging channels', 'Customer-facing model inference', 'Contact-centre severance (in-house agents)', 'Contact-centre escalations', 'Customer content safety'] };
+  const segSum = (seg, i) => lines.filter(l => SEG[seg].includes(l.name)).reduce((s, l) => s + l.years[i], 0);
+  const seg = [0, 1, 2].map(i => {
+    const di = segSum('Internal', i) + (i === 0 ? sp(p.procs, p.buildPerProc) + sp(p.procs, p.intPerProc) : 0);
+    const dc = segSum('Customer', i) + (i === 0 ? sp(p.cfJourneys, p.cfBuild) + sp(p.cfJourneys, p.cfInt) : 0);
+    const shared = yearTotals[i] - di - dc, sh = Y[i].units / Y[i].allUnits, up = yearIncl[i] / yearTotals[i];
+    return { internal: (di + shared * sh) * up / Y[i].units, customer: (dc + shared * (1 - sh)) * up / Y[i].interactions };
+  });
+  const todayInternal = monthly ? sp3(p.procs, p.unitsPerProc, p.manualMin) / monthly / 60 * hourly : 0;
+  const todayCustomer = cfMon ? sp(p.cfMonthly, p.cfAHT) / cfMon / 60 / p.occupancy * (p.outShare * p.bpoRate + (1 - p.outShare) * p.inhouseRate) : 0;
+  const reviewNoAbsorb = Y.reduce((s, d) => s + d.reviewHrs, 0) * hourly;
+  const escNoAbsorb = Y.reduce((s, d) => s + d.escHours, 0) * (p.outShare * p.bpoRate + (1 - p.outShare) * p.inhouseRate);
+  return {
+    lines, Y, byYear, seg, stepsTier: p.stepsTier, stepsCh: p.stepsCh, inTok: p.inTok, outTok: p.outTok, cachedShare: p.cachedShare, todayInternal, todayCustomer, reviewNoAbsorb, escNoAbsorb, partitions, tier, costPerInt, yearTotals, pre, total, totalUnits, emp, procs, monthly, wInt, yearIncl, esc, escTotal,
+    npv: yearIncl.reduce((s, x, i) => s + x / Math.pow(1 + p.discount, i + 1), 0),
+    unitCost: total / totalUnits,
+    tech: sum(l => l.tech ? l.total : 0), org: sum(l => l.tech ? 0 : l.total),
+    contingencyTotal: (pre + escTotal) * p.contingency,
+    intShare: lines.find(l => l.name === 'Human intervention').total / pre,
+  };
 }
-function sync(){DR.forEach(function(d){var f=d[5]||function(v){return v.toLocaleString()};$("o_"+d[0]).textContent=f(P[d[0]]);$("r_"+d[0]).value=P[d[0]]})}
-document.querySelectorAll(".pre button").forEach(function(b){b.onclick=function(){P=Object.assign({},PRE[b.getAttribute("data-p")]);draw()}});
-function kpis(Y){
- var t=Y[0].tot+Y[1].tot+Y[2].tot,fx=Y.reduce(function(s,y){return s+y.up+y.base},0),v=Y.reduce(function(s,y){return s+y.v},0);
- var per=t/txns(P);
- var it=[[fmt(t),"3-year total cost"],[fmt(Y[0].tot),"Year-1 cost"],[Math.round(fx/t*100)+"% / "+Math.round(v/t*100)+"%","Committed vs variable"],["$"+per.toFixed(2),"Blended cost per unit of intelligent work"]];
- $("kpis").innerHTML=it.map(function(i){return '<div class="kpi"><b>'+i[0]+'</b><span>'+i[1]+'</span></div>'}).join("");
+const CAT = [
+  ['Memory', 'tech', ['Agent memory']],
+  ['AI Search (vector DB)', 'tech', ['AI Search / retrieval', 'Knowledge ingestion and indexing']],
+  ['Licensing, SaaS & APIs', 'tech', ['API gateway (API Management)', 'Enterprise system APIs', 'Third-party AI APIs', 'Voice and messaging channels']],
+  ['Build and implementation', 'tech', ['Build and implementation']],
+  ['Integration', 'tech', ['Integration']],
+  ['Infrastructure', 'tech', ['Azure infrastructure / runtime', 'Non-production environments', 'Disaster recovery']],
+  ['Maintenance', 'tech', ['Maintenance and monitoring', 'Observability and evaluation']],
+  ['Inference (compute)', 'tech', ['Model inference', 'Customer-facing model inference']],
+  ['Orchestration', 'tech', ['Workflow orchestration']],
+  ['Transition & severance', 'org', ['Transition and restructuring', 'Severance', 'Contact-centre severance (in-house agents)']],
+  ['Capability building', 'org', ['Capability: reskilling', 'Capability: backfill / productivity loss', 'Capability: AI champions', 'Capability: leadership AI programme', 'Capability: learning platform licences']],
+  ['AI run team', 'org', ['AI operations team']],
+  ['Customer escalation', 'org', ['Contact-centre escalations']],
+  ['Process redesign', 'org', ['Process redesign']],
+  ['Change management', 'org', ['Change management']],
+  ['Security & governance', 'org', ['Security, compliance & governance', 'AI security tooling', 'Customer content safety', 'Human intervention']],
+];
+const BASE_MONTHLY = BASE.procs.reduce((s, n, i) => s + n * BASE.unitsPerProc[i], 0);
+const BASE_CF = BASE.cfMonthly.reduce((s, x) => s + x, 0);
+const PRESETS = {
+  pilot: { perProc: 7, procs: 3, cust: 20, auto: 1, growth: 0.2, index: 500, ctx: 12, priceSet: 'OpenAI list' },
+  scale: { perProc: 10.625, procs: 8, cust: 85, auto: 2, growth: 0.3, index: 2000, ctx: 12, priceSet: 'OpenAI list' },
+  enterprise: { perProc: 16, procs: 25, cust: 300, auto: 3, growth: 0.3, index: 5000, ctx: 12, priceSet: 'OpenAI list' },
+};
+const AUTO = { 1: ['Low', 'Review rate ×1.3, governance ×0.75, agent steps ×0.8, half the review absorption'], 2: ['Medium', 'Workbook base case'], 3: ['High', 'Review rate ×0.7, governance ×1.5, agent steps ×1.3'] };
+let S = { ...PRESETS.scale, scenario: 'Base' }, preset = 'scale', filter = 'all';
+
+function params(s, k = 1, kc = k) {
+  const units = s.perProc * s.procs * 1000 * k;
+  const mix = [3, 3, 2], tot = 8;
+  const procs = mix.map(m => Math.max(0, Math.round(s.procs * m / tot)));
+  while (procs.reduce((a, b) => a + b, 0) < s.procs) procs[0]++;
+  while (procs.reduce((a, b) => a + b, 0) > s.procs) { const i = procs.findIndex(x => x > 0); procs[i]--; }
+  const raw = procs.reduce((a, n, i) => a + n * BASE.unitsPerProc[i], 0) || 1;
+  const scale = units / raw;
+  const a = AUTO[s.auto];
+  return { ...BASE, procs, unitsPerProc: BASE.unitsPerProc.map(u => u * scale), cfMonthly: BASE.cfMonthly.map(x => x * s.cust * 1000 * kc / BASE_CF),
+    intMult: 1, risk: s.auto, scenario: s.scenario || 'Base', growth: s.growth, indexedGB: s.index, searchTier: s.index > 6144 ? 'S3' : 'S2', ctxPerStep: s.ctx * 1000, priceSet: s.priceSet };
 }
-function ch1(Y,HH){
- var W=520,H=HH||200,l=46,b=26,t=12,mx=Math.max.apply(null,Y.map(function(y){return y.tot}))*1.1,h=H-b-t,s='';
- for(var i=0;i<=4;i++){var v=mx*i/4,y=t+h-h*i/4;s+='<line x1="'+l+'" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(l-6)+'" y="'+(y+3)+'" text-anchor="end">'+fmt(v)+'</text>'}
- Y.forEach(function(y,i){var x=l+30+i*160,w=90,base=t+h;
-   var fh=h*y.up/mx;
-   var rh=h*(y.base+y.v)/mx;
-   var fy=base-fh;
-   var ry=fy-rh;
-   s+='<rect x="'+x+'" y="'+fy+'" width="'+w+'" height="'+fh+'" fill="var(--fixed)"><title>Fixed: '+fmt(y.up)+'</title></rect>';
-   s+='<rect x="'+x+'" y="'+ry+'" width="'+w+'" height="'+rh+'" fill="var(--fxv)"><title>Fixed + variable: '+fmt(y.base+y.v)+'</title></rect>';
-   s+='<text x="'+(x+w/2)+'" y="'+(ry-4)+'" text-anchor="middle" style="fill:var(--ink);font-weight:600;font-size:11px">'+fmt(y.tot)+'</text><text x="'+(x+w/2)+'" y="'+(H-8)+'" text-anchor="middle">Year '+(i+1)+'</text>'
- });
- $("ch1").innerHTML='<svg viewBox="0 0 '+W+' '+H+'">'+s+'</svg>';
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const money = v => { const a = Math.abs(v); return (v < 0 ? '−' : '') + (a >= 1e6 ? '$' + (a / 1e6).toFixed(2) + 'M' : a >= 1e3 ? '$' + Math.round(a / 1e3) + 'K' : '$' + a.toFixed(0)); };
+const mAx = v => '$' + (Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : Math.round(v / 1e3) + 'K');
+const pct = v => Math.round(v * 100) + '%';
+const segInt = r => r.seg[2].internal;
+function floorY3_unused(r) { // volume-driven cost per internal work unit in Year 3, incl. escalation and contingency
+  const i = 2, sh = r.Y[i].units / r.Y[i].allUnits, up = r.yearIncl[i] / r.yearTotals[i];
+  return r.byYear[i].variable * sh * up / r.Y[i].units;
 }
-function ch2(){
- var C=model(P),g=P.g/100,gs=1+(1+g)+Math.pow(1+g,2);
- var rows=C.filter(function(c){return dimF==="all"||c.d===dimF}).map(function(c){return{n:c.n,d:c.d,a:c.up,b:c.base*3,c:c.v*gs}});
- rows.forEach(function(r){r.t=r.a+r.b+r.c});rows.sort(function(x,y){return y.t-x.t});
- var mx=rows[0]?rows[0].t:1,W=520,l=170,rh=RH||21,bh=Math.min(15,rh-4),H=rows.length*rh+8,s='';
- rows.forEach(function(r,i){var y=4+i*rh,x=l,sc=(W-l-52)/mx;
-  s+='<text x="'+(l-6)+'" y="'+(y+rh/2+4)+'" text-anchor="end" style="fill:var(--ink)">'+r.n+'</text><rect x="0" y="'+(y+rh/2-5)+'" width="4" height="10" fill="var('+(r.d==="t"?"--tech":"--org")+')"/>';
-  [[r.a,"--c1"],[r.b,"--c2"],[r.c,"--c3"]].forEach(function(k){var w=k[0]*sc;if(w>0){s+='<rect x="'+x+'" y="'+(y+(rh-bh)/2)+'" width="'+w+'" height="'+bh+'" fill="var('+k[1]+')"/>';x+=w}});
-  s+='<text x="'+(x+4)+'" y="'+(y+rh/2+4)+'">'+fmt(r.t)+'</text>'});
- $("ch2").innerHTML='<svg viewBox="0 0 '+W+' '+H+'">'+s+'</svg><div class="legend"><span><i class="dot" style="background:var(--tech)"></i>Technology</span><span><i class="dot" style="background:var(--fxv)"></i>Organisation</span></div>';
+
+const CTL = {
+  perProc: [v => (Math.round(v * 10) / 10) + 'k'], procs: [v => v], cust: [v => v + 'k'], auto: [v => AUTO[v][0]], growth: [pct], ctx: [v => v + 'k'], index: [v => v.toLocaleString() + ' GB'],
+};
+for (const id of Object.keys(CTL)) $(id).addEventListener('input', e => { S[id] = Number(e.target.value); preset = null; render(); });
+$('priceSet').addEventListener('change', e => { S.priceSet = e.target.value; preset = null; render(); });
+document.querySelectorAll('.presets button[data-p]').forEach(b => b.addEventListener('click', () => { S = { ...PRESETS[b.dataset.p], scenario: S.scenario }; preset = b.dataset.p; render(); }));
+document.querySelectorAll('.scen button').forEach(b => b.addEventListener('click', () => { S.scenario = b.dataset.s; render(); }));
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { filter = b.dataset.f; render(); }));
+
+let charts = {};
+const labelPlugin = { id: 'tops', afterDatasetsDraw(ch) {
+  if (ch.canvas.id !== 'cYear') return;
+  const { ctx } = ch, meta = ch.getDatasetMeta(ch.data.datasets.length - 1);
+  ctx.save(); ctx.fillStyle = css('--ink'); ctx.font = '700 12px ' + css('--display'); ctx.textAlign = 'center';
+  meta.data.forEach((bar, i) => { const t = ch.data.datasets.reduce((s, d) => s + d.data[i], 0); ctx.fillText(money(t), bar.x, bar.y - 6); });
+  ctx.font = '700 10.5px ' + css('--body'); ctx.textBaseline = 'middle';
+  ch.data.datasets.forEach((ds, di) => ch.getDatasetMeta(di).data.forEach((bar, i) => {
+    const h = Math.abs(bar.base - bar.y); if (h < 11) return;
+    ctx.fillStyle = di === 2 ? css('--ink') : '#FFFFFF'; ctx.fillText(money(ds.data[i]), bar.x, (bar.y + bar.base) / 2); }));
+  ctx.restore(); } };
+const drvLabels = { id: 'drvLabels', afterDatasetsDraw(ch) {
+  const { ctx } = ch; ctx.save(); ctx.font = '10px ' + css('--body'); ctx.fillStyle = css('--muted'); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ch.getDatasetMeta(0).data.forEach((bar, i) => ctx.fillText(money(ch.data.datasets[0].data[i]), bar.x + 4, bar.y));
+  ctx.restore(); } };
+const unitLabels = { id: 'unitLabels', afterDatasetsDraw(ch) {
+  const { ctx } = ch, xs = ch.scales.x, ys = ch.scales.y, y2 = ch.scales.y2, d = ch.data.datasets, a = ch.chartArea;
+  ctx.save();
+  const xd = xs.getPixelForValue(8); ctx.strokeStyle = css('--line'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(xd, a.top); ctx.lineTo(xd, a.bottom); ctx.stroke(); ctx.setLineDash([]);
+  ctx.textAlign = 'left'; ctx.font = '700 11.5px ' + css('--display');
+  [[2, '--tech'], [3, '--org']].forEach(([i, col]) => { const p = d[i].data[0]; if (!p) return;
+    ctx.fillStyle = css(col); ctx.textAlign = 'center'; ctx.fillText(`$${p.y.toFixed(2)}`, xs.getPixelForValue(p.x), y2.getPixelForValue(p.y) - 12); });
+  ctx.textAlign = 'center'; ctx.fillStyle = css('--ink');
+  const pts = d[4].data, ord = [...pts].sort((a, b) => b.y - a.y);
+  pts.forEach(p => { const above = p === ord[0]; ctx.fillText(`$${p.y.toFixed(2)}`, xs.getPixelForValue(p.x), ys.getPixelForValue(p.y) + (above ? -12 : 20)); });
+  ctx.restore(); } };
+const VOLS = [10, 20, 50, 100, 200, 400, 800], XMAX = 800, XT = 6;
+function build() {
+  Object.values(charts).forEach(c => c.destroy());
+  Chart.defaults.font.family = css('--body'); Chart.defaults.font.size = 11; Chart.defaults.color = css('--muted'); Chart.defaults.borderColor = css('--line');
+  Chart.defaults.animation.duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 250;
+  const tip = { callbacks: { label: c => `${c.dataset.label}: ${money(c.parsed.y ?? c.parsed.x)}` } };
+  charts.year = new Chart($('cYear'), { type: 'bar', plugins: [labelPlugin],
+    data: { labels: ['Year 1', 'Year 2', 'Year 3'], datasets: [
+      { label: 'Committed', backgroundColor: css('--tech'), data: [] }, { label: 'Variable', backgroundColor: css('--org'), data: [] },
+      { label: 'Contingency', backgroundColor: css('--org2'), data: [] }] },
+    options: { maintainAspectRatio: false, layout: { padding: { top: 16 } }, plugins: { legend: { display: false }, tooltip: tip },
+      scales: { x: { stacked: true, grid: { display: false }, ticks: { color: css('--ink') } }, y: { stacked: true, ticks: { callback: mAx, maxTicksLimit: 6 } } } } });
+  charts.drv = new Chart($('cDrv'), { type: 'bar', plugins: [drvLabels], data: { labels: [], datasets: [{ label: '3-year', data: [], backgroundColor: [] }] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { right: 44 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => money(c.parsed.x) } } },
+      scales: { x: { ticks: { callback: mAx, maxTicksLimit: 6 } }, y: { grid: { display: false }, ticks: { autoSkip: false, color: css('--ink'), font: { size: 10.5 } } } } } });
+  charts.tor = new Chart($('cTor'), { type: 'bar', data: { labels: [], datasets: [
+      { label: 'Low', data: [], backgroundColor: css('--tech') }, { label: 'High', data: [], backgroundColor: css('--org') }] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label} (${c.dataset.vals[c.dataIndex]}): ${c.parsed.x >= 0 ? '+' : ''}${money(c.parsed.x)}` } } },
+      scales: { x: { stacked: false, ticks: { callback: v => (v > 0 ? '+' : v < 0 ? '−' : '') + mAx(Math.abs(v)), maxTicksLimit: 6 } }, y: { stacked: true, grid: { display: false }, ticks: { autoSkip: false, color: css('--ink'), font: { size: 10.5 } } } } } });
+  charts.unit = new Chart($('cUnit'), { type: 'line', plugins: [unitLabels], data: { datasets: [
+      { label: 'Internal work unit, Year 3 with AI', data: [], borderColor: css('--tech'), backgroundColor: css('--tech'), borderWidth: 2.5, pointRadius: 3, tension: .25 },
+      { label: 'Customer interaction, Year 3 with AI', data: [], borderColor: css('--org'), backgroundColor: css('--org'), borderWidth: 2.5, pointRadius: 3, tension: .25 },
+      { label: 'Internal work unit today', data: [], yAxisID: 'y2', showLine: false, pointStyle: 'rectRot', pointRadius: 7, pointBackgroundColor: css('--panel'), pointBorderColor: css('--tech'), pointBorderWidth: 2.5 },
+      { label: 'Customer interaction today', data: [], yAxisID: 'y2', showLine: false, pointStyle: 'rectRot', pointRadius: 7, pointBackgroundColor: css('--panel'), pointBorderColor: css('--org'), pointBorderWidth: 2.5 },
+      { label: 'Current scenario', data: [], showLine: false, pointRadius: 7, pointBorderWidth: 2.5, pointBackgroundColor: css('--panel'), pointBorderColor: css('--ring') }] },
+    options: { maintainAspectRatio: false, parsing: false, plugins: { legend: { display: false },
+        tooltip: { callbacks: { title: i => /today/.test(i[0].dataset.label) ? 'Today without agentic AI (current-state baseline, right axis)' : /Customer/.test(i[0].dataset.label) ? `${Math.round(i[0].parsed.x).toLocaleString()}k customer interactions / month` : /Current/.test(i[0].dataset.label) ? 'Current scenario' : `${Math.round(i[0].parsed.x).toLocaleString()}k internal work units / month`,
+          label: c => `${c.dataset.label}: $${c.parsed.y.toFixed(2)}` } } },
+      scales: { x: { type: 'logarithmic', min: 4.5, max: 900, title: { display: false },
+          afterBuildTicks: ax => { ax.ticks = [XT, ...VOLS].map(v => ({ value: v })); }, ticks: { callback: v => v === XT ? 'Today' : v + 'k', color: css('--ink'), maxRotation: 0, autoSkip: false, font: { size: 10 } }, grid: { display: false } },
+        y: { beginAtZero: true, position: 'left', title: { display: true, text: 'With AI, Year 3 ($ per unit)' }, ticks: { callback: v => '$' + Number(v).toFixed(2), maxTicksLimit: 6 } },
+        y2: { beginAtZero: true, position: 'right', title: { display: true, text: 'Today without agentic AI ($ per unit)' }, grid: { display: false }, ticks: { callback: v => '$' + Number(v).toFixed(0), maxTicksLimit: 6 } } } } });
 }
-function ch3(){
- var ms=[.25,.5,1,2,4,8,16],pts=ms.map(function(m){var q=Object.assign({},P);q.T=P.T*m;return[q.T,tco(q)/txns(q)]});
- var floor=pts.map(function(p,i){var q=Object.assign({},P);q.T=p[0];var Cx=model(q),g=P.g/100,gs=1+(1+g)+Math.pow(1+g,2),v=0;Cx.forEach(function(c){v+=c.v*gs});return[p[0],v/txns(q)]});
- var W=520,H=230,l=46,b=28,t=10,r=14,my=pts[0][1]*1.1,h=H-b-t,w=W-l-r,s='';
- var lx=function(i){return l+w*i/(pts.length-1)},ly=function(v){return t+h-h*v/my};
- for(var i=0;i<=4;i++){var v=my*i/4;s+='<line x1="'+l+'" x2="'+(W-r)+'" y1="'+ly(v)+'" y2="'+ly(v)+'" stroke="var(--line)"/><text x="'+(l-6)+'" y="'+(ly(v)+3)+'" text-anchor="end">$'+v.toFixed(2)+'</text>'}
- var path=function(a,col,dash){return '<path d="'+a.map(function(p,i){return(i?"L":"M")+lx(i)+" "+ly(p[1])}).join(" ")+'" fill="none" stroke="var('+col+')" stroke-width="2.5"'+(dash?' stroke-dasharray="5 4"':'')+'/>'};
- s+=path(pts,"--c1")+path(floor,"--c3",1);
- pts.forEach(function(p,i){s+='<circle cx="'+lx(i)+'" cy="'+ly(p[1])+'" r="3.5" fill="var(--c1)"'+(ms[i]===1?' stroke="var(--ink)" stroke-width="2"':'')+'><title>'+Math.round(p[0])+'k/mo: $'+p[1].toFixed(2)+' per unit</title></circle><text x="'+lx(i)+'" y="'+(H-10)+'" text-anchor="middle">'+(p[0]>=1000?(p[0]/1000)+"M":Math.round(p[0])+"k")+'</text>'});
- $("ch3").innerHTML='<svg viewBox="0 0 '+W+' '+H+'">'+s+'</svg><div class="legend"><span><i class="dot" style="background:var(--c1)"></i>Blended cost per unit of intelligent work</span><span><i class="dot" style="background:var(--fxv)"></i>Variable-cost floor</span><span>Ringed point = current scenario</span></div>';
- var cur=pts[2][1],last=pts[6][1],fl=floor[6][1];
- $("ins").textContent="At 16x today's volume, blended unit cost falls from $"+cur.toFixed(2)+" to $"+last.toFixed(2)+" per unit of intelligent work, converging towards the variable-only floor of $"+fl.toFixed(2)+": fixed costs dilute, variable costs do not.";
+function render() {
+  for (const [id, [fmt]] of Object.entries(CTL)) { $(id).value = S[id]; $(id + 'o').textContent = fmt(S[id]); }
+  document.querySelectorAll('.presets button[data-p]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.p === preset)));
+  document.querySelectorAll('.scen button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === S.scenario)));
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === filter)));
+  const p = params(S), r = runModel(p);
+  $('unitsHint').textContent = `= ${Math.round(S.perProc * S.procs).toLocaleString()}k internal work units a month across ${S.procs} processes`;
+  $('scenHint').textContent = S.scenario === 'Base' ? 'Workbook values; Low / High move 12 assumptions together (see Sensitivity tab)' : `${S.scenario} values for growth, ramp-up, tokens, caching, prices, delivery effort and rates, index size, review capacity, employee cost and contingency`;
+  $('procHint').textContent = `${p.procs.join(' simple, ').replace(/, (\d+)$/, ', $1')} → ${p.procs[0]} simple / ${p.procs[1]} medium / ${p.procs[2]} complex`;
+  $('procHint').textContent = `${p.procs[0]} simple / ${p.procs[1]} medium / ${p.procs[2]} complex`;
+  $('priceSet').value = S.priceSet;
+  $('ctxHint').textContent = `${Math.round(r.inTok / 1000).toLocaleString()}k input + ${Math.round(r.outTok / 1000)}k output tokens per medium work unit (${Math.round(r.stepsTier[1])} agent steps); ${pct(r.cachedShare)} cached`;
+  $('autoHint').textContent = AUTO[S.auto][1];
+  $('indexHint').textContent = `${r.partitions} partition${r.partitions > 1 ? 's' : ''} × ${r.Y[2].replicas} replicas = ${r.Y[2].searchUnits} search units on ${p.searchTier}` + (r.partitions > 12 ? ' (exceeds limit)' : '');
+  // KPIs
+  $('kTot').textContent = money(r.total); $('kTotD').textContent = `NPV ${money(r.npv)} at ${pct(p.discount)}`;
+  $('kY1').textContent = money(r.yearIncl[0]); $('kY1D').textContent = `${pct(r.yearIncl[0] / r.total)} of the 3-year total`;
+  const com = r.byYear.reduce((s, y) => s + y.oneTime + y.fixed, 0), vr = r.byYear.reduce((s, y) => s + y.variable, 0);
+  $('kCV').textContent = `${pct(com / (com + vr))} / ${pct(vr / (com + vr))}`; $('sC').style.width = pct(com / (com + vr)); $('sV').style.width = pct(vr / (com + vr));
+  $('kU').textContent = '$' + segInt(r).toFixed(2);
+  $('kUD').textContent = `${pct(1 - segInt(r) / r.todayInternal)} lower than the $${r.todayInternal.toFixed(2)} current-state baseline. Customer interaction $${r.seg[2].customer.toFixed(2)}`;
+  // year chart
+  const c = charts;
+  c.year.data.datasets[0].data = [0, 1, 2].map(i => r.lines.reduce((s, l) => s + ((i === 0 ? l.one : 0) + l.fix) * (1 + l.fac[i]), 0));
+  c.year.data.datasets[1].data = [0, 1, 2].map(i => r.lines.reduce((s, l) => s + l.variable[i] * (1 + l.fac[i]), 0));
+  c.year.data.datasets[2].data = r.byYear.map(y => y.contingency);
+  // drivers
+  const tot = n => r.lines.filter(l => n.includes(l.name)).reduce((s, l) => s + l.total, 0);
+  const rows = CAT.map(([lab, t, n]) => ({ lab, t, v: tot(n) })).filter(x => x.v > 0.5 && (filter === 'all' || x.t === filter)).sort((a, b) => b.v - a.v);
+  c.drv.data.labels = rows.map(x => x.lab); c.drv.data.datasets[0].data = rows.map(x => x.v);
+  c.drv.data.datasets[0].backgroundColor = rows.map(x => css(x.t === 'tech' ? '--tech' : '--org'));
+  // unit curve
+  const pts = VOLS.map(v => ({ k: v, i: segInt(runModel(params(S, v / (S.perProc * S.procs), 1))), c: S.cust > 0 ? runModel(params(S, 1, v / S.cust)).seg[2].customer : null }));
+  c.unit.data.datasets[0].data = pts.map(q => ({ x: q.k, y: q.i }));
+  c.unit.data.datasets[1].data = S.cust > 0 ? pts.map(q => ({ x: q.k, y: q.c })) : [];
+  c.unit.data.datasets[2].data = [{ x: XT, y: r.todayInternal }];
+  c.unit.data.datasets[3].data = S.cust > 0 ? [{ x: XT, y: r.todayCustomer }] : [];
+  c.unit.data.datasets[4].data = [{ x: (S.perProc * S.procs), y: segInt(r) }, ...(S.cust > 0 ? [{ x: S.cust, y: r.seg[2].customer }] : [])];
+  { const m = Math.max(...pts.map(q => Math.max(q.i, q.c ?? 0))); c.unit.options.scales.y.max = Math.ceil(m * 1.25 * 4) / 4; }
+  c.unit.options.scales.y2.max = Math.ceil(Math.max(r.todayInternal, r.todayCustomer) * 1.15);
+  const hi = pts[pts.length - 1];
+  { const sens = filter === 'sens'; $('drvBox').hidden = sens; $('drvLeg').hidden = sens; $('torBox').hidden = !sens; $('torLeg').hidden = !sens;
+    if (sens) { const fmt = v => typeof v === 'string' ? v : v >= 1000 ? v.toLocaleString() : v < 1 ? pct(v) : String(v);
+      const t = tornado(p); c.tor.data.labels = t.map(x => x.label);
+      c.tor.data.datasets[0].data = t.map(x => x.low); c.tor.data.datasets[0].vals = t.map(x => fmt(x.lo));
+      c.tor.data.datasets[1].data = t.map(x => x.high); c.tor.data.datasets[1].vals = t.map(x => fmt(x.hi)); } }
+  Object.values(c).forEach(ch => ch.update());
 }
-function ch4(){
- if(!$("ch4"))return;
- var base=ptsBase();
- var lev=[["Simple / deterministic",Math.max(base*.45,1.5)],["AI-assisted workflow",Math.max(base*.85,3)],["Multi-step agent workflow",Math.max(base*1.65,6)],["Highly autonomous workflow",Math.max(base*2.8,10)]];
- var W=520,H=230,l=46,b=42,t=10,h=H-b-t,mx=Math.max.apply(null,lev.map(function(x){return x[1]}))*1.15,w=(W-l-15)/4,s='';
- for(var i=0;i<=4;i++){var v=mx*i/4,y=t+h-h*i/4;s+='<line x1="'+l+'" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(l-6)+'" y="'+(y+3)+'" text-anchor="end">$'+v.toFixed(2)+'</text>'}
- lev.forEach(function(x,i){var bw=70,xp=l+20+i*w,y=t+h-h*x[1]/mx;s+='<rect x="'+xp+'" y="'+y+'" width="'+bw+'" height="'+(h*x[1]/mx)+'" rx="4" fill="'+(i<2?'var(--c1)':'var(--c2)')+'"/><text x="'+(xp+bw/2)+'" y="'+(y-6)+'" text-anchor="middle" style="fill:var(--ink);font-weight:600">$'+x[1].toFixed(2)+'</text><text x="'+(xp+bw/2)+'" y="'+(H-24)+'" text-anchor="middle">'+x[0].replace(' / ',' / ')+'</text>'});
- $("ch4").innerHTML='<svg viewBox="0 0 '+W+' '+H+'">'+s+'</svg>';
-}
-function ptsBase(){var q=Object.assign({},P);return tco(q)/txns(q);}
-function seg(){$("seg").innerHTML=[["all","All"],["t","Technology"],["o","Organisation"]].map(function(k){return '<button data-k="'+k[0]+'" class="'+(dimF===k[0]?'on':'')+'">'+k[1]+'</button>'}).join("");}
-$("seg").onclick=function(e){var k=e.target.getAttribute("data-k");if(k){dimF=k;seg();draw()}};
-var RH=0,H1=200;
-function fit(Y){var WR=document.querySelector(".wrap");WR.style.zoom=1;document.body.classList.remove("tight");RH=21;H1=200;
- if(!window.matchMedia("(min-width:821px)").matches){RH=0;ch1(Y,H1);ch2();return}
- var de=document.documentElement,ov=function(){return de.scrollHeight-window.innerHeight};
- ch1(Y,H1);ch2();
- var L=document.querySelector(".top>.panel"),R=document.querySelector(".top>div:last-child");
- var sh=function(){while(ov()>0&&H1>90&&R.offsetHeight>L.offsetHeight){H1-=6;ch1(Y,H1)}};
- sh();
- while(ov()>0&&RH>14){RH-=1;ch2()}
- if(ov()>0){document.body.classList.add("tight");sh()}
- var z=1;while(ov()>0&&z>.5){z=Math.round((z-.02)*100)/100;WR.style.zoom=z}}
-function draw(){sync();var Y=yearly(P);kpis(Y);ch3();ch4();fit(Y)}
-ctls();seg();draw();window.addEventListener('resize',draw);
+build(); render();
+const rebuild = () => { build(); render(); };
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', rebuild);
+new MutationObserver(rebuild).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 </script>
 </body>
 </html>
