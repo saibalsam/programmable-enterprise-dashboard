@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Programmable Enterprise Cost Dashboard</title>
+<title>Programmable Enterprise Dashboard</title>
 <style>
 /* Layout: driver rail on the left; KPI strip, then a 2x2 board of charts. Technology = blue, organisation = violet. */
 :root{
   --bg:#F3F4F6; --panel:#FFFFFF; --ink:#16181D; --muted:#5E6470; --line:#E2E4E9; --soft:#EEF0F4;
-  --tech:#2F6BED; --tech2:#9DB8F6; --org:#6B4BC2; --org2:#B9A6E6; --ring:#16181D; --base:#8A8F99;
+  --tech:#2F6BED; --tech2:#9DB8F6; --org:#6B4BC2; --org2:#B9A6E6; --ring:#16181D; --base:#8A8F99; --good:#1E7B4F; --warn:#D9A440; --bad:#B3261E;
   --display:"Times New Roman", Times, "Liberation Serif", serif;
   --body:"Times New Roman", Times, "Liberation Serif", serif;
   --label:"Times New Roman", Times, "Liberation Serif", serif;
@@ -65,13 +65,44 @@ footer{font-size:9px;line-height:1.3;color:var(--muted)}
 }
 @media (max-width:800px){.board{grid-template-columns:minmax(0,1fr)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* value view */
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px}
+.vtabs button{font-size:13px;padding:5px 16px}
+body.isValue,.isValue .wrap{height:auto}
+.isValue .charts .cv{height:290px;flex:none}
+.isValue .charts{grid-template-columns:minmax(0,1.2fr) minmax(0,1.1fr) minmax(0,.9fr)}
+.v.pos{color:var(--good)}.v.neg{color:var(--bad)}
+.vimp{font:inherit;font-size:11.5px;padding:4px 10px;background:var(--panel);color:var(--ink);cursor:pointer;border-left:1px solid var(--line)}
+.vimp input{display:none}
+.vscroll{overflow-x:auto}
+.vt{width:100%;border-collapse:collapse;font-size:12.5px}
+.vt th,.vt td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.vt thead th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:400}
+.vt tbody th{font-family:var(--display);font-size:13.5px;vertical-align:top;width:140px}
+.vt tr.first td,.vt tr.first th{border-top:2px solid var(--line)}
+.vtype{display:block;font-family:var(--body);font-weight:400;font-size:10.5px;color:var(--muted);margin-top:2px}
+.stage{font-size:10.5px;padding:1px 6px;border-radius:9px;border:1px solid var(--line)}
+.stage.A{background:var(--soft)}.stage.D{background:var(--tech2);border-color:transparent}
+.up{color:var(--good);font-size:15px}
+.vin{width:80px;font:inherit;font-size:12px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink)}
+.vin.u{width:66px}
+.pg{min-width:140px}
+.bar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--base)}
+.bar.ok i{background:var(--good)}.bar.mid i{background:var(--warn)}.bar.bad i{background:var(--bad)}
+.st{font-size:11px;color:var(--muted)}.st.ok{color:var(--good)}.st.mid{color:#9A6A10}.st.bad{color:var(--bad)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--good:#4CC38A;--warn:#E3B562;--bad:#F07167}}
+:root[data-theme="dark"]{--good:#4CC38A;--warn:#E3B562;--bad:#F07167}
+.calcdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--tech);margin-right:6px;vertical-align:1px}
+.vin:disabled{background:var(--soft);color:var(--ink);border-color:transparent;opacity:1}
 </style>
 </head>
 <body>
 
 <div class="wrap">
-<h1>The Programmable Enterprise Cost Dashboard</h1>
-<div class="board">
+<div class="top"><h1>The Programmable Enterprise Dashboard</h1><div class="tabs vtabs" role="group" aria-label="View"><button type="button" data-view="cost">Cost</button><button type="button" data-view="value">Value</button></div></div>
+<div class="board" id="viewCost">
   <aside class="card" aria-label="Scenario drivers">
     <h2>Scenario drivers</h2>
     <div class="presets" role="group" aria-label="Scenario presets">
@@ -118,7 +149,58 @@ footer{font-size:9px;line-height:1.3;color:var(--muted)}
     </div>
   </div>
 </div>
-<footer>Current-state baseline: internal = employee minutes at average productive employee cost; customer = agent handling time at the blended in-house / outsourced agent rate. Unit cost includes a volume share of shared platform, run-team and governance cost and contingency. Programme cost only: benefits are not counted. Tokens per unit = agent steps x tokens per step (12k context, 500 output x3 reasoning, 50% cached at 90% off). Model tiers priced at GPT-5.6 Luna / Terra / Sol. Delivery effort = person-days x blended onshore / offshore day rates.</footer>
+
+<div class="board" id="viewValue" hidden>
+  <aside class="card" aria-label="Value drivers">
+    <h2>Value drivers</h2>
+    <div class="presets" role="group" aria-label="Value presets">
+      <button type="button" data-vp="cautious">Cautious</button>
+      <button type="button" data-vp="expected">Expected</button>
+      <button type="button" data-vp="ambitious">Ambitious</button>
+    </div>
+    <div class="ctl"><label for="vAssist">Months in Assist</label><output id="vAssisto"></output><input type="range" id="vAssist" min="1" max="6" step="1"><span class="hint">People use AI in their own work while delegation is designed and built</span></div>
+    <div class="ctl"><label for="vRamp">Months to reach full Delegate</label><output id="vRampo"></output><input type="range" id="vRamp" min="6" max="12" step="1"><span class="hint">Authority is widened as evidence builds</span></div>
+    <div class="ctl"><label for="vAdopt">Decisions at their assigned mode</label><output id="vAdopto"></output><input type="range" id="vAdopt" min="40" max="100" step="5"><span class="hint">Share of decisions in scope running as designed once Delegate is reached</span></div>
+    <div class="ctl"><label for="vConv">Released capacity turned into value</label><output id="vConvo"></output><input type="range" id="vConv" min="0" max="100" step="5"><span class="hint">Cost removed or capacity redeployed; the rest is absorbed</span></div>
+    <div class="ctl"><label for="vRev">Share redeployed to revenue</label><output id="vRevo"></output><input type="range" id="vRev" min="0" max="100" step="5"><span class="hint">The rest is realised as cost reduction</span></div>
+    <div class="ctl"><label for="vMonth">Review at month</label><output id="vMontho"></output><input type="range" id="vMonth" min="1" max="36" step="1"><span class="hint">Sets the scorecard's calculated values</span></div>
+    <p class="note" id="vNote"></p>
+  </aside>
+  <div class="main">
+    <section class="kpis" aria-label="Value headline figures">
+      <div class="card kpi"><div class="lab">3-year net value</div><div class="v" id="vkNet"></div><div class="d" id="vkNetD"></div></div>
+      <div class="card kpi"><div class="lab">Payback</div><div class="v" id="vkPay"></div><div class="d" id="vkPayD"></div></div>
+      <div class="card kpi"><div class="lab">Potential gain realised</div><div class="v" id="vkReal"></div><div class="split" aria-hidden="true"><i id="vsR" style="background:var(--good)"></i><i id="vsA" style="background:var(--warn)"></i><i id="vsN" style="background:var(--base)"></i></div><div class="d">Realised / absorbed / not yet captured</div></div>
+      <div class="card kpi"><div class="lab">Return on programme cost</div><div class="v" id="vkRoi"></div><div class="d" id="vkRoiD"></div></div>
+    </section>
+    <div class="charts">
+      <section class="card"><h2>The J-curve: cumulative net value</h2>
+        <div class="cv"><canvas id="vJ" role="img" aria-label="Cumulative net value by month"></canvas></div>
+        <div class="legend"><span style="--c:var(--ink)">Cumulative net value</span><span class="dash" style="--c:var(--tech)">Decisions delegated (right axis)</span><span style="--c:var(--soft)">Assist</span></div>
+        <p class="cap" id="vRead"></p>
+      </section>
+      <section class="card"><h2>From potential gain to net value, 3 years</h2>
+        <div class="cv"><canvas id="vB" role="img" aria-label="Value bridge"></canvas></div>
+        <div class="legend"><span style="--c:var(--tech)">Gain</span><span style="--c:var(--warn)">Leakage</span><span style="--c:var(--org)">Programme cost</span></div>
+      </section>
+      <section class="card"><h2>Five levers: progress to target</h2>
+        <div class="cv"><canvas id="vL" role="img" aria-label="Progress to target by lever"></canvas></div>
+        <div class="legend"><span style="--c:var(--tech)">Leading</span><span style="--c:var(--org2)">Intermediate</span><span style="--c:var(--base)">Lagging</span><span id="vLmonth"></span></div>
+      </section>
+    </div>
+  </div>
+</div>
+<section class="card" id="viewScore" hidden aria-label="Value scorecard">
+  <div class="head"><h2>Scorecard</h2>
+    <div class="tabs" role="group" aria-label="Scorecard data"><button type="button" data-v="indicative">Indicative</button><button type="button" data-v="utility">Utility case</button><button type="button" data-v="blank">Blank</button><button type="button" id="vExport">Export</button><label class="vimp">Import<input type="file" id="vImport" accept="application/json"></label></div></div>
+  <div class="vscroll"><table class="vt" id="vTable">
+    <thead><tr><th>Lever</th><th>Measure</th><th>Stage</th><th></th><th>Unit</th><th>Baseline</th><th>Target</th><th>Current</th><th>Progress</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <div class="legend"><span><b class="up">↑</b> value grows as the measure rises</span><span><b class="up">↓</b> value grows as it falls</span><span><i class="calcdot"></i> calculated from the cost and value drivers</span><span>Other values are entered by hand and saved in this browser.</span></div>
+</section>
+
+<footer id="costFoot">Current-state baseline: internal = employee minutes at average productive employee cost; customer = agent handling time at the blended in-house / outsourced agent rate. Unit cost includes a volume share of shared platform, run-team and governance cost and contingency. Programme cost only: benefits are not counted. Tokens per unit = agent steps x tokens per step (12k context, 500 output x3 reasoning, 50% cached at 90% off). Model tiers priced at GPT-5.6 Luna / Terra / Sol. Delivery effort = person-days x blended onshore / offshore day rates.</footer>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -586,6 +668,202 @@ build(); render();
 const rebuild = () => { build(); render(); };
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', rebuild);
 new MutationObserver(rebuild).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// ---------------- Value view ----------------
+// One set of drivers: volumes, processes, autonomy and costs come from the Cost view; the value drivers set how
+// quickly work moves from Assist to Delegate and how much released capacity becomes value.
+const LEVERS = [
+  ['Adoption', 'lead', [
+    ['Staff using AI every week', 'A', 1, '%', 20, 80, 65],
+    ['Share of process work flowing through the new workflow', 'D', 1, '%', 0, 80, 55],
+    ['Share of decisions run at their assigned mode, with required oversight in place', 'D', 1, '%', 0, 80, 0, 'mode'],
+    ['Share of eligible processes under one delegation framework', 'D', 1, '%', 0, 60, 25]]],
+  ['Speed to market', 'lead', [
+    ['End-to-end cycle time', 'D', -1, 'hours', 48, 8, 20],
+    ['Time to market for new offerings', 'D', -1, 'days', 120, 60, 95],
+    ['Time for a policy change to take effect', 'D', -1, 'days', 30, 2, 10]]],
+  ['Operational excellence', 'lead', [
+    ['Error and rework rate (quality)', 'A', -1, '%', 8, 3, 5],
+    ['Cost per unit of work (efficiency)', 'D', -1, '$', 0, 0, 0, 'unit'],
+    ['Service levels met (effectiveness)', 'D', 1, '%', 70, 95, 86],
+    ['Coordination effort per unit as volume grows', 'D', -1, 'hrs / 1,000', 40, 20, 33]]],
+  ['Customer outcomes', 'mid', [
+    ['Issues resolved without repeat contact', 'D', 1, '%', 60, 80, 70],
+    ['Satisfaction or NPS across journeys', 'D', 1, 'CSAT', 3.1, 4.2, 3.7]]],
+  ['Financial performance', 'lag', [
+    ['Realised cost reduction', 'D', 1, '%', 0, 0, 0, 'save'],
+    ['Incremental revenue attributable to the change', 'D', 1, '$ / yr', 0, 0, 0, 'rev']]],
+];
+const ROWS = []; LEVERS.forEach(([lv, type, ms], li) => ms.forEach(([m, st, dir, unit, b, t, c, calc]) => ROWS.push({ lv, li, type, m, st, dir, unit, b, t, c, calc })));
+const VKEY = 'pe-value-v3', DKEY = 'pe-value-drivers-v3', ASSIST_GAIN = 0.10, ASSIST_VAR = 0.2;
+const blankV = () => ({ rows: ROWS.map(r => ({ unit: r.unit, b: '', t: '', c: '' })) });
+const INDIC = () => ({ rows: ROWS.map(r => ({ unit: r.unit, b: r.b, t: r.t, c: r.c })) });
+const UTILITY = () => { const v = blankV(), set = (i, b, c, unit) => Object.assign(v.rows[i], { b, c }, unit ? { unit } : {});
+  set(1, 0, 90); set(4, 30, 2, 'min'); set(7, '', 2); set(12, 3.1, 4, 'CSAT'); return v; };
+let V; try { V = JSON.parse(localStorage.getItem(VKEY)) || INDIC(); } catch (e) { V = INDIC(); }
+if (!V.rows || V.rows.length !== ROWS.length) V = INDIC();
+const VP = { cautious: { assist: 6, ramp: 12, adopt: 60, conv: 40, rev: 20, month: 18 }, expected: { assist: 3, ramp: 9, adopt: 80, conv: 60, rev: 30, month: 18 }, ambitious: { assist: 2, ramp: 6, adopt: 90, conv: 75, rev: 40, month: 18 } };
+let D; try { D = JSON.parse(localStorage.getItem(DKEY)) || { ...VP.expected }; } catch (e) { D = { ...VP.expected }; }
+const samePreset = k => ['assist', 'ramp', 'adopt', 'conv', 'rev'].every(x => VP[k][x] === D[x]);
+let vpreset = Object.keys(VP).find(samePreset) || null;
+const keep = () => { try { localStorage.setItem(VKEY, JSON.stringify(V)); localStorage.setItem(DKEY, JSON.stringify(D)); } catch (e) {} };
+const num = x => x === '' || x === null || x === undefined || isNaN(Number(x)) ? null : Number(x);
+function prog(r, v) {
+  const b = num(v.b), t = num(v.t), c = num(v.c);
+  if (b === null || c === null) return { p: null, chg: null };
+  const chg = (c - b) * r.dir;
+  if (t === null || t === b) return { p: null, chg };
+  return { p: (c - b) / (t - b), chg };
+}
+function status(p, chg) {
+  if (p !== null) return p >= 1 ? ['Achieved', 'ok'] : p >= 0.5 ? ['On track', 'ok'] : p > 0 ? ['Improving', 'mid'] : ['Not moving', 'bad'];
+  if (chg !== null) return chg > 0 ? ['Improving', 'mid'] : ['Not moving', 'bad'];
+  return ['No data', 'none'];
+}
+const fmtN = x => Math.abs(x) >= 1000 ? Math.round(x).toLocaleString() : (Math.round(x * 100) / 100).toString();
+const smooth = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+
+function valueModel() {
+  const p = params(S), r = runModel(p);
+  const sp = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
+  const mon = sp(p.procs, p.unitsPerProc), cf = p.cfMonthly.reduce((s, x) => s + x, 0);
+  const wAuto = mon ? p.procs.reduce((s, n, i) => s + n * p.unitsPerProc[i] * p.autoShare[i], 0) / mon : 0;
+  const contain = cf ? sp(p.cfMonthly, p.cfContain) / cf : 0;
+  const today = r.Y.map(d => d.units * r.todayInternal + d.interactions * r.todayCustomer);          // handling cost today, per year
+  const potential = r.Y.map(d => d.units * r.todayInternal * wAuto + d.interactions * r.todayCustomer * contain); // gain at full Delegate
+  // programme cost from the Cost view, split so that volume-driven cost follows the share of work actually delegated
+  const f = r.yearIncl.map((x, i) => x / r.yearTotals[i]);
+  const oneInc = r.byYear[0].oneTime * f[0];
+  const varFull = r.byYear.map((b, i) => b.variable * f[i] / (i === 0 ? p.ramp : 1) / 12);
+  const fixM = r.yearIncl.map((x, i) => (x - r.byYear[i].variable * f[i] - (i === 0 ? oneInc : 0)) / 12);
+  const a = D.adopt / 100, cv = D.conv / 100, rs = D.rev / 100;
+  const M = []; let cum = 0, pay = null, minCum = 0;
+  for (let m = 1; m <= 36; m++) {
+    const y = Math.floor((m - 1) / 12), assistLvl = Math.min(1, m / D.assist), lvl = smooth((m - D.assist) / D.ramp), deleg = a * lvl;
+    const pot = potential[y] / 12 / (y === 0 ? p.ramp : 1), base = today[y] / 12 / (y === 0 ? p.ramp : 1);
+    const assistGain = base * ASSIST_GAIN * assistLvl * (1 - deleg), delegGain = pot * deleg;
+    const captured = assistGain + delegGain, realised = captured * cv;
+    const cost = fixM[y] + varFull[y] * Math.max(deleg, ASSIST_VAR * assistLvl * (1 - deleg)) + (m <= D.assist ? oneInc / D.assist : 0);
+    cum += realised - cost; minCum = Math.min(minCum, cum); if (pay === null && m > D.assist && cum >= 0) pay = m;
+    M.push({ m, pot, base, captured, realised, absorbed: captured - realised, cost, cum, deleg });
+  }
+  const sum = k => M.reduce((s, x) => s + x[k], 0);
+  const G = sum('pot'), C = sum('cost'), R = sum('realised'), AB = sum('absorbed'), NA = G - sum('captured');
+  return { wAuto, p, r, M, G, C, R, AB, NA, net: R - C, pay, minCum, rev: R * rs, red: R * (1 - rs), rs, cv, a, fullCost: r.total };
+}
+
+let vcharts = {}, VM = null;
+const bridgeLabels = { id: 'bridgeLabels', afterDatasetsDraw(ch) {
+  const { ctx } = ch; ctx.save(); ctx.font = '700 11px ' + css('--display'); ctx.fillStyle = css('--ink'); ctx.textAlign = 'center';
+  ch.getDatasetMeta(0).data.forEach((bar, i) => { const v = ch.data.datasets[0].raw[i]; ctx.fillText(money(v), bar.x, Math.min(bar.y, bar.base) - 5); });
+  ctx.restore(); } };
+const jMarks = { id: 'jMarks', beforeDatasetsDraw(ch) {
+  const { ctx, chartArea: a, scales: { x } } = ch; if (!VM) return;
+  const px = m => x.getPixelForValue(m - 1);
+  ctx.save(); ctx.fillStyle = css('--soft'); ctx.fillRect(a.left, a.top, px(D.assist + 0.5) - a.left, a.bottom - a.top);
+  ctx.fillStyle = css('--muted'); ctx.font = '10.5px ' + css('--body'); ctx.textAlign = 'center'; const ax = px(D.assist + 0.5);
+  if (ax - a.left > 44) ctx.fillText('Assist', (a.left + ax) / 2, a.top + 12); ctx.textAlign = 'left'; ctx.fillText('Delegate →', ax + 6, a.top + 12);
+  ctx.strokeStyle = css('--ink'); ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(px(D.month), a.top); ctx.lineTo(px(D.month), a.bottom); ctx.stroke();
+  ctx.restore(); } };
+function buildV() {
+  Object.values(vcharts).forEach(c => c.destroy());
+  vcharts.j = new Chart($('vJ'), { type: 'line', plugins: [jMarks], data: { labels: Array.from({ length: 36 }, (_, i) => i + 1), datasets: [
+      { label: 'Cumulative net value', data: [], borderColor: css('--ink'), borderWidth: 2.5, pointRadius: 0, tension: .3, fill: { target: 'origin', above: 'rgba(30,123,79,.15)', below: 'rgba(179,38,30,.12)' } },
+      { label: 'Decisions delegated', data: [], yAxisID: 'y2', borderColor: css('--tech'), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, tension: .3 }] },
+    options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false },
+        tooltip: { callbacks: { title: i => 'Month ' + i[0].label, label: c => c.datasetIndex ? `Decisions delegated: ${pct(c.parsed.y)}` : `Cumulative net value: ${money(c.parsed.y)}` } } },
+      scales: { x: { title: { display: true, text: 'Month' }, grid: { display: false }, ticks: { maxTicksLimit: 7 } },
+        y: { ticks: { callback: mAx, maxTicksLimit: 6 }, grid: { color: c => c.tick.value === 0 ? css('--ink') : css('--line') } },
+        y2: { position: 'right', min: 0, max: 1, grid: { display: false }, ticks: { callback: v => pct(v), maxTicksLimit: 5 } } } } });
+  vcharts.b = new Chart($('vB'), { type: 'bar', plugins: [bridgeLabels], data: { labels: ['Potential', 'Not captured', 'Absorbed', 'Realised', 'Cost', 'Net value'], datasets: [{ data: [], raw: [], backgroundColor: [] }] },
+    options: { maintainAspectRatio: false, layout: { padding: { top: 18 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => money(c.dataset.raw[c.dataIndex]) } } },
+      scales: { x: { grid: { display: false }, ticks: { color: css('--ink'), maxRotation: 0, autoSkip: false, font: { size: 10.5 } } }, y: { ticks: { callback: mAx, maxTicksLimit: 6 } } } } });
+  vcharts.l = new Chart($('vL'), { type: 'bar', data: { labels: LEVERS.map(l => l[0]), datasets: [{ data: [], backgroundColor: LEVERS.map(l => css(l[1] === 'lead' ? '--tech' : l[1] === 'mid' ? '--org2' : '--base')) }] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => pct(c.parsed.x / 100) + ' of the way to target' } } },
+      scales: { x: { min: 0, max: 100, ticks: { callback: v => v + '%', maxTicksLimit: 6 } }, y: { grid: { display: false }, ticks: { color: css('--ink'), font: { size: 11 } } } } } });
+}
+const VCTL = { vAssist: ['assist', v => v + (v > 1 ? ' months' : ' month')], vRamp: ['ramp', v => v + ' months'], vAdopt: ['adopt', v => v + '%'], vConv: ['conv', v => v + '%'], vRev: ['rev', v => v + '%'], vMonth: ['month', v => 'Month ' + v] };
+function buildScore() {
+  const tb = document.querySelector('#vTable tbody'); tb.innerHTML = '';
+  ROWS.forEach((r, i) => {
+    const tr = document.createElement('tr'), first = i === 0 || ROWS[i - 1].lv !== r.lv, span = ROWS.filter(x => x.lv === r.lv).length;
+    if (first) tr.className = 'first';
+    const dis = r.calc ? ' disabled' : '';
+    tr.innerHTML = (first ? `<th rowspan="${span}" scope="rowgroup">${r.lv}<span class="vtype">${r.type === 'lead' ? 'Leading' : r.type === 'mid' ? 'Intermediate' : 'Lagging'}</span></th>` : '')
+      + `<td>${r.calc ? '<i class="calcdot" title="Calculated"></i>' : ''}${r.m}</td><td><span class="stage ${r.st}">${r.st === 'A' ? 'Assist' : 'Delegate'}</span></td><td class="dir"><b class="up">${r.dir > 0 ? '↑' : '↓'}</b></td>`
+      + `<td><input class="vin u" data-i="${i}" data-k="unit" aria-label="Unit for ${r.m}"${dis}></td>`
+      + ['b', 't', 'c'].map(k => `<td><input class="vin" type="${r.calc ? 'text' : 'number'}" step="any" data-i="${i}" data-k="${k}" aria-label="${{ b: 'Baseline', t: 'Target', c: 'Current' }[k]} for ${r.m}"${dis}></td>`).join('')
+      + `<td class="pg"><div class="bar"><i></i></div><span class="st"></span></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.vin').forEach(el => el.addEventListener('input', e => { const { i, k } = e.target.dataset; V.rows[i][k] = e.target.value; keep(); renderValue(false); }));
+  document.querySelectorAll('[data-v]').forEach(b => b.addEventListener('click', () => { V = b.dataset.v === 'utility' ? UTILITY() : b.dataset.v === 'blank' ? blankV() : INDIC(); keep(); renderValue(true); }));
+  document.querySelectorAll('[data-vp]').forEach(b => b.addEventListener('click', () => { D = { ...VP[b.dataset.vp], month: D.month }; vpreset = b.dataset.vp; keep(); renderValue(true); }));
+  for (const [id, [k]] of Object.entries(VCTL)) $(id).addEventListener('input', e => { D[k] = Number(e.target.value); vpreset = Object.keys(VP).find(samePreset) || null; keep(); renderValue(false); });
+  $('vExport').addEventListener('click', () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ ...V, drivers: D }, null, 1)], { type: 'application/json' })); a.download = 'value-dashboard.json'; a.click(); });
+  $('vImport').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { const n = JSON.parse(t); if (n.rows && n.rows.length === ROWS.length) { V = { rows: n.rows }; if (n.drivers) D = { ...D, ...n.drivers }; keep(); renderValue(true); } } catch (x) {} }); });
+}
+function calcRows(v) {
+  // scorecard values that come from the model, read at the review month
+  const mm = v.M[D.month - 1], r = v.r, full = v.M[35];
+  const unitAI = r.seg[2].internal, unitToday = r.todayInternal;
+  const yr = x => x * 12;
+  return {
+    mode: ['%', 0, Math.round(v.a * 100), Math.round(mm.deleg * 100)],
+    unit: ['$', +unitToday.toFixed(2), +(unitAI + unitToday * (1 - v.wAuto * v.a)).toFixed(2), +(unitAI * (mm.deleg / v.a || 0) + unitToday * (1 - v.wAuto * mm.deleg)).toFixed(2)],
+    save: ['%', 0, +(full.realised * (1 - v.rs) / full.base * 100).toFixed(1), +(mm.realised * (1 - v.rs) / mm.base * 100).toFixed(1)],
+    rev: ['$ / yr', 0, Math.round(yr(full.realised * v.rs)), Math.round(yr(mm.realised * v.rs))],
+  };
+}
+function renderValue(fill) {
+  const tb = document.querySelector('#vTable tbody');
+  for (const [id, [k, f]] of Object.entries(VCTL)) { $(id).value = D[k]; $(id + 'o').textContent = f(D[k]); }
+  document.querySelectorAll('[data-vp]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vp === vpreset)));
+  const v = VM = valueModel(), calc = calcRows(v);
+  ROWS.forEach((r, i) => { if (r.calc) { const [u, b, t, c] = calc[r.calc]; V.rows[i] = { unit: u, b, t, c }; } });
+  tb.querySelectorAll('.vin').forEach(el => { const r = ROWS[el.dataset.i]; if (fill || r.calc) el.value = V.rows[el.dataset.i][el.dataset.k] ?? ''; });
+  const lev = LEVERS.map(() => []);
+  tb.querySelectorAll('tr').forEach((tr, i) => {
+    const r = ROWS[i], { p, chg } = prog(r, V.rows[i]), [s, cls] = status(p, chg);
+    tr.querySelector('.bar i').style.width = p === null ? '0' : Math.max(0, Math.min(1, p)) * 100 + '%';
+    tr.querySelector('.bar').className = 'bar ' + cls;
+    const st = tr.querySelector('.st'); st.textContent = p !== null ? `${Math.round(p * 100)}% · ${s}` : chg !== null ? `${chg > 0 ? '+' : ''}${fmtN(chg)} · ${s}` : s; st.className = 'st ' + cls;
+    if (p !== null) lev[r.li].push(Math.max(0, Math.min(1, p)));
+  });
+  vcharts.l.data.datasets[0].data = lev.map(a => a.length ? a.reduce((s, x) => s + x, 0) / a.length * 100 : 0);
+  $('vLmonth').textContent = `Scorecard at month ${D.month}`;
+  $('vkNet').textContent = money(v.net); $('vkNet').className = 'v ' + (v.net >= 0 ? 'pos' : 'neg');
+  $('vkNetD').textContent = `${money(v.R)} realised (${money(v.red)} cost reduction, ${money(v.rev)} revenue) less ${money(v.C)} programme cost`;
+  $('vkPay').textContent = v.pay ? `Month ${v.pay}` : 'Beyond 36 months';
+  $('vkPayD').textContent = v.pay ? 'Cumulative net value turns positive' : 'Cumulative net value stays negative over 3 years';
+  $('vkReal').textContent = pct(v.R / v.G);
+  $('vsR').style.width = pct(v.R / v.G); $('vsA').style.width = pct(v.AB / v.G); $('vsN').style.width = pct(Math.max(0, v.NA) / v.G);
+  $('vkRoi').textContent = (v.net >= 0 ? '' : '−') + pct(Math.abs(v.net) / v.C); $('vkRoi').className = 'v ' + (v.net >= 0 ? 'pos' : 'neg');
+  $('vkRoiD').textContent = `Programme cost ${money(v.C)} at this pace of delegation, against ${money(v.fullCost)} at full volume in the Cost view`;
+  $('vNote').textContent = `Linked to the Cost view: ${S.procs} processes, ${Math.round(S.perProc * S.procs)}k work units and ${S.cust}k customer interactions a month, ${AUTO[S.auto][0].toLowerCase()} autonomy. Volume-driven cost rises with the share of decisions delegated; fixed cost does not. Assist is assumed to save ${pct(ASSIST_GAIN)} of handling cost. All figures are indicative.`;
+  vcharts.j.data.datasets[0].data = v.M.map(x => x.cum); vcharts.j.data.datasets[1].data = v.M.map(x => x.deleg);
+  const steps = [[0, v.G], [v.G, v.G - v.NA], [v.G - v.NA, v.R], [0, v.R], [v.R, v.R - v.C], [0, v.net]];
+  const bd = vcharts.b.data.datasets[0];
+  bd.data = steps; bd.raw = [v.G, -v.NA, -v.AB, v.R, -v.C, v.net];
+  bd.backgroundColor = [css('--tech'), css('--warn'), css('--warn'), css('--tech'), css('--org'), v.net >= 0 ? css('--good') : css('--bad')];
+  const lead = lev.slice(0, 3).flat(), leadAvg = lead.length ? lead.reduce((s, x) => s + x, 0) / lead.length : null;
+  $('vRead').textContent = (leadAvg !== null && leadAvg < 0.25 ? 'Leading indicators are barely moving: the organisation is paying for the dip without building the capabilities that carry it out. Redesign, pause or stop. ' : '')
+    + (v.pay ? `The dip bottoms out at ${money(v.minCum)} and value turns positive in month ${v.pay}.` : `The dip reaches ${money(v.minCum)} and does not recover within three years at these settings.`);
+  Object.values(vcharts).forEach(c => c.update());
+}
+function showView(v) {
+  document.querySelectorAll('.vtabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+  $('viewCost').hidden = v !== 'cost'; $('costFoot').hidden = v !== 'cost'; $('viewValue').hidden = v !== 'value'; $('viewScore').hidden = v !== 'value';
+  document.body.classList.toggle('isValue', v === 'value');
+  if (v === 'cost') Object.values(charts).forEach(c => c.resize()); else { Object.values(vcharts).forEach(c => c.resize()); renderValue(true); }
+  try { localStorage.setItem('pe-view', v); } catch (e) {}
+}
+buildV(); buildScore();
+document.querySelectorAll('.vtabs button').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+const rebuildV = () => { buildV(); renderValue(true); };
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', rebuildV);
+new MutationObserver(rebuildV).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+{ let v = 'cost'; try { v = localStorage.getItem('pe-view') || 'cost'; } catch (e) {} showView(v); }
 </script>
 </body>
 </html>
